@@ -1,0 +1,108 @@
+﻿@page "/orders"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Mine ordrer</PageTitle>
+
+<div class="overview-page customer-orders-page">
+<header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Min konto</span>
+    <h1>Mine ordrer</h1>
+    <p>Se dine tidligere bestillinger, og følg status på dine ordrer.</p>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="overview-state" role="alert">
+        <h4>Ordrerne kunne ikke hentes</h4>
+        <p>@ErrorMessage</p>
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadOrdersAsync">Prøv igen</button>
+    </div>
+}
+else if (Orders is null)
+{
+    <div class="overview-state" role="status">
+        <span class="spinner-border" aria-hidden="true"></span>
+        <h4>Vi henter dine ordrer</h4>
+        <p class="mb-0">Et øjeblik…</p>
+    </div>
+}
+else if (Orders.Count == 0)
+{
+    <div class="overview-state" role="status">
+        <h4>Ingen ordrer endnu</h4>
+        <p>Du har endnu ikke bestilt noget. Find dit næste håndlavede favoritprodukt i butikken.</p>
+        <a class="btn btn-outline-secondary" href="/products">Se produkter</a>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+
+        @foreach (var order in Orders)
+        {
+            <div class="col-12">
+
+                <div class="card overview-order-card">
+                    <div class="card-body">
+
+                        <div class="overview-order-heading">
+
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    Ordre #@order.OrderId.ToString()[..8].ToUpperInvariant()
+                                </h5>
+
+                                <div class="text-muted">
+                                    @order.CreatedAt.ToString("dd-MM-yyyy HH:mm")
+                                </div>
+                            </div>
+
+                            <OrderStatusBadge Status="@order.Status" />
+
+                        </div>
+
+                        <hr />
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <strong>Varer</strong>
+                                <div>
+                                    @order.TotalItems
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <strong>Betaling</strong>
+                                <div>
+                                    @order.PaymentStatus
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <strong>Total</strong>
+                                <div>
+                                    @order.Total.ToString("0.00") kr.
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="mt-3">
+                            <a class="btn btn-outline-success"
+                               aria-label="@($"Se ordre {order.OrderId.ToString()[..8].ToUpperInvariant()}")"
+                               href="@($"/orders/{order.OrderId}")">
+                                Se ordre
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        }
+
+    </div>
+}
+</div>

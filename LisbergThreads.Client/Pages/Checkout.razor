@@ -1,0 +1,153 @@
+@page "/checkout"
+
+<PageTitle>Checkout</PageTitle>
+
+<div class="overview-page checkout-page">
+<header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Din bestilling</span>
+    <h1>Checkout</h1>
+    <p>Udfyld dine oplysninger, og fortsæt til betaling med MobilePay.</p>
+</header>
+
+<FeedbackNotice Message="@ErrorMessage" IsError="true" />
+
+@if (IsLoading)
+{
+    <PageState Title="Gør klar til checkout" Message="Et øjeblik, mens vi henter din kurv." IsLoading="true" />
+}
+else if (Cart is null)
+{
+    <PageState Title="Kurven kunne ikke hentes" Message="@LoadError" IsError="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadCartAsync">Prøv igen</button>
+    </PageState>
+}
+else if (Cart.Items.Count == 0)
+{
+    <PageState Title="Din kurv er tom" Message="Tilføj varer, før du går til checkout.">
+        <a class="btn btn-success" href="/products">Se produkter</a>
+    </PageState>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-12 col-lg-7">
+            <EditForm Model="Model" OnValidSubmit="CheckoutAsync" class="checkout-form">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <h2>Kontaktoplysninger</h2>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="checkout-first-name">Fornavn</label>
+                        <InputText id="checkout-first-name" autocomplete="given-name" class="form-control"
+                                   @bind-Value="Model.FirstName" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="checkout-last-name">Efternavn</label>
+                        <InputText id="checkout-last-name" autocomplete="family-name" class="form-control"
+                                   @bind-Value="Model.LastName" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="checkout-email">E-mail</label>
+                    <InputText id="checkout-email" autocomplete="email" class="form-control"
+                               type="email"
+                               @bind-Value="Model.Email" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="checkout-phone">Telefon</label>
+                    <InputText id="checkout-phone" autocomplete="tel" type="tel" class="form-control"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                    @bind-Value="Model.Phone" />
+                </div>
+
+                <h2 class="checkout-section-heading">Levering</h2>
+
+                <div class="mb-3">
+                    <label class="form-label" for="checkout-address">Adresse</label>
+                    <InputText id="checkout-address" autocomplete="street-address" class="form-control"
+                               @bind-Value="Model.Address" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="checkout-postal-code">Postnummer</label>
+                        <InputText id="checkout-postal-code" autocomplete="postal-code" class="form-control"
+                                   @bind-Value="Model.PostalCode" />
+                    </div>
+
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label" for="checkout-city">By</label>
+                        <InputText id="checkout-city" autocomplete="address-level2" class="form-control"
+                                   @bind-Value="Model.City" />
+                    </div>
+                </div>
+
+                <h2 class="checkout-section-heading">Betaling</h2>
+
+                <div class="form-check mb-3">
+                    <InputRadioGroup @bind-Value="Model.PaymentMethod">
+                        <div class="form-check">
+                            <InputRadio id="checkout-mobilepay" class="form-check-input"
+                                        Value="@("MobilePay")" />
+                            <label class="form-check-label" for="checkout-mobilepay">
+                                MobilePay
+                            </label>
+                        </div>
+                    </InputRadioGroup>
+                </div>
+
+                <p class="form-text">Beløbet reserveres ved godkendelse i MobilePay og hæves, når ordren afsendes. Varerne reserveres ikke, mens betalingen afventer godkendelse.</p>
+                <div class="checkout-actions">
+                    <button type="submit"
+                            class="btn btn-success"
+                            disabled="@(IsSaving || CheckoutUncertain)">
+                        @(IsSaving ? "Åbner MobilePay…" : "Fortsæt til MobilePay")
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-success"
+                            @onclick="BackToCart"
+                            disabled="@IsSaving">
+                        Tilbage til kurv
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card overview-order-card">
+                <div class="card-body">
+                    <h2 class="card-title">Din ordre</h2>
+
+                    @foreach (var item in Cart.Items)
+                    {
+                        <div class="checkout-line border-bottom py-2">
+                            <div>
+                                <strong>@item.Name</strong>
+                                <div class="small text-muted">
+                                    @item.Quantity × @item.UnitPrice.ToString("C")
+                                </div>
+                            </div>
+
+                            <div>
+                                @item.LineTotal.ToString("C")
+                            </div>
+                        </div>
+                    }
+
+                    <div class="checkout-total">
+                        <strong>Total</strong>
+                        <strong>@Cart.Total.ToString("C")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+</div>

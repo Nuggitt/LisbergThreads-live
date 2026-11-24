@@ -1,0 +1,115 @@
+@page "/om-lisberg-threads"
+@using LisbergThreads.Contracts.Content
+
+<PageTitle>@Text("About.Title")</PageTitle>
+
+<div class="about-page">
+    <header class="about-hero">
+        <span class="about-eyebrow"><InlineTextEditor Text="@(Text("About.Eyebrow"))" Label="overtekst" Enabled="@loaded" OnSave="@(value => SaveAsync("About.Eyebrow", value))" /></span>
+        <h1><InlineTextEditor Text="@(Text("About.Title"))" Label="sidens overskrift" Enabled="@loaded" OnSave="@(value => SaveAsync("About.Title", value))" /></h1>
+        <p><InlineTextEditor Text="@(Text("About.Introduction"))" Label="introduktion" Multiline="true" Enabled="@loaded" OnSave="@(value => SaveAsync("About.Introduction", value))" /></p>
+    </header>
+
+    @if (loading)
+    {
+        <PageState Title="Henter historien" Message="Et øjeblik, mens vi finder tekster og billeder." IsLoading="true" />
+    }
+    else if (loadError is not null)
+    {
+        <PageState Title="Siden kunne ikke vises" Message="@loadError" IsError="true">
+            <button type="button" class="btn btn-outline-success" @onclick="LoadAsync">Prøv igen</button>
+        </PageState>
+    }
+    else
+    {
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="about-admin-note">
+                    <p>Klik på ✎ for at redigere teksterne. Upload billeder ved de enkelte afsnit; de gemmes med det samme. Historien har plads til to billeder.</p>
+                    <p class="mb-0">Udfyld historien med dine egne oplevelser, og tilpas procesbeskrivelserne, så de følger dit eget arbejde.</p>
+                    <details class="mt-3">
+                        <summary>Rediger produktknappens tekst</summary>
+                        <p class="mt-2 mb-0"><InlineTextEditor Text="@(Text("About.Visit.Link"))" Label="produktknappens tekst" OnSave="@(value => SaveAsync("About.Visit.Link", value))" /></p>
+                    </details>
+                </div>
+                <FeedbackNotice Message="@savedMessage" />
+            </Authorized>
+        </AuthorizeView>
+
+        <section id="historien" class="about-story" aria-labelledby="history-title">
+            <span class="about-eyebrow"><InlineTextEditor Text="@(Text("About.History.Eyebrow"))" Label="historiens overtekst" OnSave="@(value => SaveAsync("About.History.Eyebrow", value))" /></span>
+            <h2 id="history-title"><InlineTextEditor Text="@(Text("About.History.Title"))" Label="historiens overskrift" OnSave="@(value => SaveAsync("About.History.Title", value))" /></h2>
+            <p><InlineTextEditor Text="@(Text("About.History.Introduction"))" Label="historien bag" Multiline="true" OnSave="@(value => SaveAsync("About.History.Introduction", value))" /></p>
+            <div class="history-texts">
+                @foreach (var item in new[]
+                {
+                    (Key: "About.History.Start", Title: "De første sting"),
+                    (Key: "About.History.Machines", Title: "Symaskinen – dengang og nu"),
+                    (Key: "About.History.Knitting", Title: "Glæden ved strik")
+                })
+                {
+                    <div>
+                        <h3><InlineTextEditor Text="@(Text(item.Key + ".Title"))" Label="afsnittets overskrift" OnSave="@(value => SaveAsync(item.Key + ".Title", value))" /></h3>
+                        <p><InlineTextEditor Text="@(Text(item.Key))" Label="@item.Title" Multiline="true" OnSave="@(value => SaveAsync(item.Key, value))" /></p>
+                    </div>
+                }
+            </div>
+            <div class="history-images">
+                @foreach (var slot in new[] { "First", "Today" })
+                {
+                    var imageKey = $"About.History.{slot}.Image";
+                    var captionKey = $"About.History.{slot}.Caption";
+                    <figure>
+                        <ContentImageEditor ImageUrl="@(Image(imageKey))" Label="@(Text(captionKey))" OnSave="@(value => SaveAsync(imageKey, value))" />
+                        @if (Image(imageKey) is not null)
+                        {
+                            <figcaption><InlineTextEditor Text="@(Text(captionKey))" Label="billedtekst" OnSave="@(value => SaveAsync(captionKey, value))" /></figcaption>
+                        }
+                    </figure>
+                }
+            </div>
+        </section>
+
+        @foreach (var process in new[]
+        {
+            (Key: "Sewing", Id: "syning", Title: "Fra stof til færdigt produkt", Subtitle: "Et indblik i syprocessen", Steps: AboutContentDefaults.SewingSteps),
+            (Key: "Knitting", Id: "strikning", Title: "Fra garn til færdigt strik", Subtitle: "Et indblik i strikkeprocessen", Steps: AboutContentDefaults.KnittingSteps)
+        })
+        {
+            <section id="@process.Id" class="about-process" aria-labelledby="@(process.Id + "-title")">
+                <header class="process-header">
+                    <span class="about-eyebrow"><InlineTextEditor Text="@(Text($"About.{process.Key}.Subtitle"))" Label="processens overtekst" OnSave="@(value => SaveAsync($"About.{process.Key}.Subtitle", value))" /></span>
+                    <h2 id="@(process.Id + "-title")"><InlineTextEditor Text="@(Text($"About.{process.Key}.Title"))" Label="processens overskrift" OnSave="@(value => SaveAsync($"About.{process.Key}.Title", value))" /></h2>
+                </header>
+                <ol class="process-grid">
+                    @for (var i = 0; i < process.Steps.Count; i++)
+                    {
+                        var textKey = $"About.{process.Key}.{i}.Text";
+                        var imageKey = $"About.{process.Key}.{i}.Image";
+                        var titleKey = $"About.{process.Key}.{i}.Title";
+                        var captionKey = $"About.{process.Key}.{i}.Caption";
+                        var title = process.Steps[i];
+                        <li class="process-card" @key="textKey">
+                            <span class="process-number" aria-hidden="true">@((i + 1).ToString("00"))</span>
+                            <h3><InlineTextEditor Text="@(Text(titleKey))" Label="trinnets overskrift" OnSave="@(value => SaveAsync(titleKey, value))" /></h3>
+                            <p><InlineTextEditor Text="@(Text(textKey))" Label="@title" Multiline="true" OnSave="@(value => SaveAsync(textKey, value))" /></p>
+                            <figure class="mb-0">
+                                <ContentImageEditor ImageUrl="@(Image(imageKey))" Label="@(Text(captionKey))" OnSave="@(value => SaveAsync(imageKey, value))" />
+                                @if (Image(imageKey) is not null)
+                                {
+                                    <figcaption><InlineTextEditor Text="@(Text(captionKey))" Label="billedtekst" OnSave="@(value => SaveAsync(captionKey, value))" /></figcaption>
+                                }
+                            </figure>
+                        </li>
+                    }
+                </ol>
+            </section>
+        }
+
+        <section class="about-visit" aria-labelledby="visit-title">
+            <h2 id="visit-title"><InlineTextEditor Text="@(Text("About.Visit.Title"))" Label="afslutningens overskrift" OnSave="@(value => SaveAsync("About.Visit.Title", value))" /></h2>
+            <p><InlineTextEditor Text="@(Text("About.Visit.Text"))" Label="afslutningens tekst" Multiline="true" OnSave="@(value => SaveAsync("About.Visit.Text", value))" /></p>
+            <a class="btn btn-success" href="/products">@Text("About.Visit.Link")</a>
+        </section>
+    }
+</div>

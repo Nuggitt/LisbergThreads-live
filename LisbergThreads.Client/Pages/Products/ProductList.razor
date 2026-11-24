@@ -1,0 +1,227 @@
+﻿@page "/products"
+@using LisbergThreads.Contracts.Products
+@using LisbergThreads.Client.Components.Products
+
+<div class="products-page">
+<h3>Produkter</h3>
+
+@if (LoggedIn)
+{
+    <FeedbackNotice Message="Du er nu logget ind." />
+}
+
+<FeedbackNotice Message="@message" IsError="@messageIsError" />
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="mb-4">
+            <div class="product-status-filter">
+                <label for="product-status-filter" class="form-label">Produktstatus</label>
+                <select id="product-status-filter" class="form-select" @bind="selectedStatusFilter">
+                    <option value="@ProductStatusFilter.All">Alle</option>
+                    <option value="@ProductStatusFilter.Active">Aktive (inkl. udsolgte)</option>
+                    <option value="@ProductStatusFilter.SoldOut">Udsolgte</option>
+                    <option value="@ProductStatusFilter.Inactive">Ikke aktive</option>
+                </select>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@if (isLoading)
+{
+    <div class="product-state" role="status" aria-live="polite">
+        <span class="spinner-border product-state-spinner" aria-hidden="true"></span>
+        <h4>Vi finder håndarbejdet frem</h4>
+        <p class="mb-0">Produkterne er på vej. Et øjeblik…</p>
+    </div>
+}
+else if (loadError is not null)
+{
+    <div class="product-state" role="alert">
+        <h4>Produkterne kunne ikke hentes</h4>
+        <p>@loadError</p>
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadProductsAsync">Prøv igen</button>
+    </div>
+}
+else if (products is null || products.Count == 0)
+{
+    <div class="product-state" role="status">
+        <h4>Ingen produkter endnu</h4>
+        <p class="mb-0">Der er ingen produkter at vise lige nu.</p>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <a class="btn btn-outline-secondary mt-3" href="/products/create">Opret produkt</a>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+}
+else if (!FilteredProducts.Any())
+{
+    <div class="product-state" role="status">
+        <h4>Ingen produkter fundet</h4>
+        @if (HasProductSearch)
+        {
+            <p>Ingen produkter matcher søgningen "@SearchService.SearchText"@(isAdmin && selectedStatusFilter != ProductStatusFilter.All ? " med det valgte statusfilter" : "").</p>
+        }
+        else
+        {
+            <p>Ingen produkter matcher det valgte statusfilter.</p>
+        }
+        <p class="mb-0">Prøv et andet søgeord@(isAdmin ? " eller et andet statusfilter" : "").</p>
+    </div>
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var p in FilteredProducts)
+        {
+            <div @key="p.Id" class="product-column">
+                <div class="card w-100 h-100">
+
+                    <ProductGallery Product="p" Compact="true" LinkToProduct="true" />
+
+                    <NavLink href="@($"/products/{p.Id}")"
+                             class="text-decoration-none text-dark d-flex flex-column">
+
+                        <div class="card-body">
+                            <h5 class="card-title">@p.Name</h5>
+                        </div>
+
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <b>Størrelse: </b>@p.Size
+                            </li>
+
+                            <li class="list-group-item">
+                                <b>Pris: </b>@p.Price.ToString("C")
+                            </li>
+
+                            <li class="list-group-item">
+                                <span class="stock-label @(!p.IsActive ? "inactive" : p.StockQuantity > 0 ? "available" : "sold-out")">
+                                    <span aria-hidden="true">●</span>@(!p.IsActive ? "Ikke aktiv" : p.StockQuantity == 0 ? "Udsolgt" : "På lager")
+                                </span>
+
+                                <span class="ms-2">
+                                    @p.StockQuantity Stk.
+                                </span>
+                            </li>
+                        </ul>
+                    </NavLink>
+
+                        <div class="card-body product-actions">
+                            <div class="purchase-controls">
+                                <button type="button"
+                                        class="btn btn-success"
+                                        disabled="@(!p.IsActive || p.StockQuantity <= 0)"
+                                        @onclick="() => AddToCart(p.Id)">
+                                    Tilføj til kurven
+                                </button>
+
+                                <div class="quantity-control">
+                                <label for="@($"quantity-{p.Id}")" class="form-label mb-1">Antal</label>
+                                <input id="@($"quantity-{p.Id}")"
+                                       type="number"
+                                       class="form-control quantity-input"
+                                       min="1"
+                                       max="@p.StockQuantity"
+                                       step="1"
+                                       disabled="@(!p.IsActive || p.StockQuantity <= 0)"
+                                       @bind:get="GetQuantity(p.Id)"
+                                       @bind:set="value => quantities[p.Id] = value"
+                                       @bind:event="oninput" />
+                                </div>
+                            </div>
+
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-actions">
+                                    <NavLink class="btn btn-edit"
+                                             href="@($"/products/edit/{p.Id}")">
+                                        Rediger
+                                    </NavLink>
+
+                                    @if (p.IsActive)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-danger"
+                                                disabled="@isDeactivating"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deactivateProductModal"
+                                                @onclick="() => productToDeactivate = p">
+                                            Deaktiver
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="btn btn-success"
+                                                @onclick="() => ActivateProductAsync(p.Id)">
+                                            Aktiver
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger"
+                                                disabled="@isDeleting"
+                                                data-bs-toggle="modal" data-bs-target="#deleteProductModal"
+                                                @onclick="() => productToDelete = p">
+                                            Slet permanent
+                                        </button>
+                                    }
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
+
+                        </div>
+
+                </div>
+            </div>
+        }
+    </div>
+}
+</div>
+
+<div class="modal fade" id="deactivateProductModal" tabindex="-1"
+     aria-labelledby="deactivateProductTitle" aria-describedby="deactivateProductDescription" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="deactivateProductTitle">Deaktiver produkt?</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Luk"></button>
+            </div>
+            <div class="modal-body" id="deactivateProductDescription">
+                <p>Vil du deaktivere “@productToDeactivate?.Name”?</p>
+                <p class="text-muted mb-0">Produktet vil ikke længere være synligt for kunder. Du kan aktivere det igen fra produktlisten.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuller</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                        disabled="@(isDeactivating || productToDeactivate is null)" @onclick="ConfirmDeactivationAsync">
+                    Deaktiver produkt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteProductModal" tabindex="-1"
+     aria-labelledby="deleteProductTitle" aria-describedby="deleteProductDescription" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="deleteProductTitle">Slet produkt permanent?</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Luk"></button>
+            </div>
+            <div class="modal-body" id="deleteProductDescription">
+                <p>Vil du slette “@productToDelete?.Name” permanent?</p>
+                <p class="text-danger fw-semibold">Sletningen kan ikke fortrydes.</p>
+                <p class="text-muted mb-0">Produkter, der bruges i en ordre eller kurv i databasen, kan ikke slettes.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuller</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                        disabled="@(isDeleting || productToDelete is null)" @onclick="ConfirmPermanentDeletionAsync">
+                    Slet permanent
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,108 @@
+﻿@page "/cart"
+@using LisbergThreads.Contracts.Orders
+
+<PageTitle>Kurv</PageTitle>
+
+<div class="overview-page cart-page">
+<header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Din bestilling</span>
+    <h1>Min kurv</h1>
+    <p>Kontrollér dine varer og antal, før du går videre til checkout.</p>
+</header>
+
+<FeedbackNotice Message="@message" IsError="@messageIsError" />
+
+@if (cart is null)
+{
+    @if (loadError is not null)
+    {
+        <PageState Title="Kurven kunne ikke hentes" Message="@loadError" IsError="true">
+            <button type="button" class="btn btn-outline-secondary" @onclick="LoadCart">Prøv igen</button>
+        </PageState>
+    }
+    else { <PageState Title="Henter din kurv" Message="Et øjeblik, mens vi finder dine varer." IsLoading="true" /> }
+}
+else if (cart.Items.Count == 0)
+{
+    <PageState Title="Din kurv er tom" Message="Find dit næste håndarbejde blandt vores produkter.">
+        <a class="btn btn-success" href="/products">Se produkter</a>
+    </PageState>
+}
+else
+{
+    <div class="overview-panel">
+    <div class="table-responsive" role="region" aria-label="Varer i kurven" tabindex="0">
+    <table class="table overview-table align-middle">
+        <thead>
+            <tr>
+                <th scope="col">Billede</th>
+                <th scope="col">Produkt</th>
+                <th scope="col">Størrelse</th>
+                <th scope="col">Pris</th>
+                <th scope="col">Antal</th>
+                <th scope="col">Linjetotal</th>
+                <th scope="col"><span class="visually-hidden">Handling</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in cart.Items)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <NavLink href="@($"/products/{item.ProductId}")">
+                                <img src="@item.ImageUrl"
+                                     alt="@item.Name"
+                                     class="cart-product-image" />
+                            </NavLink>
+                        }
+                    </td>
+
+                    <td class="overview-name">@item.Name</td>
+                    <td data-label="Størrelse">@item.Size</td>
+                    <td data-label="Pris">@item.UnitPrice.ToString("C")</td>
+
+                    <td data-label="Antal">
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-success"
+                                    aria-label="@($"Færre {item.Name}")" disabled="@(item.Quantity <= 1)"
+                                    @onclick="() => ChangeQuantity(item.ProductId, item.Quantity - 1)">
+                                -
+                            </button>
+
+                            <span>@item.Quantity</span>
+
+                            <button type="button" class="btn btn-outline-success"
+                                    aria-label="@($"Flere {item.Name}")"
+                                    @onclick="() => ChangeQuantity(item.ProductId, item.Quantity + 1)">
+                                +
+                            </button>
+                        </div>
+                    </td>
+
+                    <td class="overview-total" data-label="Linjetotal">@item.LineTotal.ToString("C")</td>
+
+                    <td class="overview-action">
+                        <button type="button" class="btn btn-outline-danger"
+                                aria-label="@($"Fjern {item.Name} fra kurven")"
+                                @onclick="() => RemoveFromCart(item.ProductId)">
+                            Fjern
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+    </div>
+
+    <div class="cart-summary">
+        <div class="cart-total"><span>Total</span><strong>@cart.Total.ToString("C")</strong></div>
+        <div class="cart-actions">
+            <a class="btn btn-outline-success" href="/products">Se flere produkter</a>
+            <button type="button" class="btn btn-success" @onclick="Checkout">Gå til checkout</button>
+        </div>
+    </div>
+}
+</div>

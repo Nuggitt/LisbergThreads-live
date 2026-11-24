@@ -1,0 +1,48 @@
+﻿@page "/login"
+
+<PageTitle>Log ind</PageTitle>
+
+<div class="auth-page">
+    <h1 class="h3">Log ind</h1>
+
+    <form @onsubmit="LoginUser" @onsubmit:preventDefault="true">
+        <div style="width: 100%; max-width: 450px;">
+            <div class="mb-3">
+                <label class="form-label" for="login-email">E-mail</label>
+
+                <input id="login-email" class="form-control"
+                       type="email"
+                       @bind="Email"
+                       autocomplete="email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Adgangskode</label>
+
+                <PasswordInput @bind-Value="Password"
+                               Autocomplete="current-password" />
+            </div>
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    disabled="@IsLoggingIn">
+                @(IsLoggingIn ? "Logger ind…" : "Log ind")
+            </button>
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <a class="btn btn-outline-secondary" href="/forgot-password">Glemt adgangskode?</a>
+                <a class="btn btn-outline-primary" href="/register">Opret bruger</a>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+            {
+                <FeedbackNotice Message="@SuccessMessage" />
+            }
+
+            @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+            {
+                <FeedbackNotice Message="@ErrorMessage" IsError="true" />
+            }
+        </div>
+    </form>
+</div>

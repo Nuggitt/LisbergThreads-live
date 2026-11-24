@@ -1,0 +1,22 @@
+<PageTitle>@Title – Lisberg Threads</PageTitle>
+
+<section class="route-notice" aria-labelledby="route-notice-title">
+    <span class="route-notice-label">@Label</span>
+    <h1 id="route-notice-title">@Title</h1>
+    <p>@Message</p>
+    <div class="route-notice-actions">
+        @if (ShowLogin)
+        {
+            <a class="btn btn-success" href="/login">Gå til login</a>
+        }
+        <a class="btn @(ShowLogin ? "btn-outline-secondary" : "btn-success")" href="/">Gå til forsiden</a>
+        <a class="btn btn-outline-secondary" href="/products">Se produkter</a>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Message { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public bool ShowLogin { get; set; }
+}

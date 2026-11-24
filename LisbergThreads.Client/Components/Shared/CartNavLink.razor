@@ -1,0 +1,19 @@
+﻿<li class="nav-item me-2">
+    <button type="button" class="nav-link position-relative border-0 bg-transparent"
+            aria-label="@(countUnavailable ? "Kurvens antal kunne ikke hentes. Åbn kurven for at kontrollere indholdet." : "Åbn kurv")"
+            title="@(countUnavailable ? "Kurvens antal kunne ikke hentes. Åbn kurven for at prøve igen." : "Åbn kurv")" aria-controls="cartSidebar"
+            @onclick="CartState.OpenSidebar">
+        <i class="bi bi-cart fs-4" aria-hidden="true"></i>
+
+        @if (countUnavailable)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary" aria-hidden="true">?</span>
+        }
+        else if (cartCount > 0)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                @cartCount
+            </span>
+        }
+    </button>
+</li>

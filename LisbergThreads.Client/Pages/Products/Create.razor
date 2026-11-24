@@ -1,0 +1,136 @@
+﻿@page "/products/create"
+
+<PageTitle>Opret produkt</PageTitle>
+
+<div class="product-editor create-product">
+<header class="create-header">
+    <span class="create-eyebrow">Lisberg Threads · Produkter</span>
+    <h1>Opret produkt</h1>
+    <p>Giv dit håndarbejde en plads i butikken.</p>
+</header>
+
+<FeedbackNotice Message="@ErrorMessage" IsError="true" />
+
+<EditForm Model="Model" OnValidSubmit="SaveAsync" class="product-editor-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <section class="create-section" aria-labelledby="product-information-title">
+    <h2 id="product-information-title">Produktinformation</h2>
+    <div class="mb-3">
+        <label class="form-label" for="product-name">Navn</label>
+        <InputText id="product-name" class="form-control" @bind-Value="Model.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="product-description">Beskrivelse</label>
+        <InputTextArea id="product-description" class="form-control" @bind-Value="Model.Description" />
+    </div>
+
+    <div class="product-editor-row">
+    <div class="mb-3">
+        <label class="form-label" for="product-size">Størrelse</label>
+        <InputText id="product-size" class="form-control" @bind-Value="Model.Size" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="product-price">Pris (kr.)</label>
+        <InputNumber id="product-price" class="form-control" @bind-Value="Model.Price" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="product-stock">Lagerantal</label>
+        <InputNumber id="product-stock" class="form-control" @bind-Value="Model.StockQuantity" />
+    </div>
+    </div>
+
+    </section>
+    <section class="create-section image-section" aria-labelledby="product-images-title">
+    <h2 id="product-images-title">Produktbilleder</h2>
+    <p class="section-note">Vælg et hovedbillede og eventuelt ekstra billeder.</p>
+    <div class="mb-3">
+        <label class="form-label" for="product-image-url">Link til hovedbillede</label>
+        <InputText id="product-image-url" class="form-control"
+                   @bind-Value="Model.ImageUrl" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="product-image-upload">Eller upload et billede</label>
+
+        <InputFile id="product-image-upload" OnChange="UploadImageAsync"
+                   accept=".jpg,.jpeg,.png,.webp"
+                   class="form-control"
+                   disabled="@(IsSaving || IsUploadingAdditionalImages)" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+    {
+        <div class="mb-3">
+            <label class="form-label">Forhåndsvisning</label>
+
+            <div>
+                <img src="@PreviewImageUrl"
+                     alt="Preview"
+                     style="max-width: 250px;
+                max-height: 250px;
+                object-fit: contain;" />
+            </div>
+        </div>
+    }
+    
+    <div class="mb-3">
+        <label class="form-label" for="product-extra-images">Ekstra produktbilleder</label>
+
+        <InputFile id="product-extra-images" OnChange="UploadAdditionalImagesAsync"
+                   multiple
+                   accept=".jpg,.jpeg,.png,.webp"
+                   class="form-control"
+                   disabled="@(IsSaving || IsUploadingAdditionalImages)" />
+
+        <div class="form-text">
+            Højst 5 ekstra billeder. Maks. 5 MB pr. billede.
+        </div>
+    </div>
+
+    @if (IsUploadingAdditionalImages)
+    {
+        <p role="status">Uploader billeder...</p>
+    }
+
+    <div class="d-flex flex-wrap gap-3 mb-3">
+        @foreach (var imageUrl in Model.AdditionalImageUrls)
+        {
+            <div @key="imageUrl">
+                <img src="@GetAdditionalImageUrl(imageUrl)"
+                     alt="Ekstra produktbillede"
+                     style="width: 120px; height: 120px; object-fit: contain;" />
+
+                <div class="mt-2">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            disabled="@(IsSaving || IsUploadingAdditionalImages)"
+                            @onclick="() => RemoveAdditionalImage(imageUrl)">
+                        Fjern
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    </section>
+    <div class="d-flex gap-2 create-actions">
+        <button type="submit"
+                class="btn btn-primary"
+                disabled="@(IsSaving || IsUploadingAdditionalImages)">
+            @(IsSaving ? "Gemmer..." : "Opret produkt")
+        </button>
+
+        <button type="button"
+                class="btn btn-outline-secondary"
+                @onclick="Cancel"
+                disabled="@(IsSaving || IsUploadingAdditionalImages)">
+            Annuller
+        </button>
+    </div>
+</EditForm>
+</div>

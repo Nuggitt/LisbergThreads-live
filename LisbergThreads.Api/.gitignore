@@ -1,0 +1,18 @@
+# Private configuration and credentials. Keep only blank examples in Git.
+appsettings.json
+appsettings.Local.json
+appsettings.*.local.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.publishsettings
+App_Data/
+artifacts/
+**/bin/
+**/obj/
+# Customer uploads belong in server storage, not future commits.
+wwwroot/uploads/

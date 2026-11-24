@@ -1,0 +1,138 @@
+@page "/"
+@using LisbergThreads.Client.Components.Products
+
+<PageTitle>Lisberg Threads | Håndlavet strik og børnetøj</PageTitle>
+
+<div class="home-page">
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <p class="alert alert-light">Klik på en tekst med ✎ for at redigere. Produktdata ændres på produktets detaljeside.</p>
+            @if (contentError is not null)
+            {
+                <FeedbackNotice Message="@contentError" IsError="true" />
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadContentAsync">Prøv igen</button>
+            }
+            @if (contentSaved is not null)
+            {
+                <FeedbackNotice Message="@contentSaved" />
+            }
+        </Authorized>
+    </AuthorizeView>
+    <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+            <p class="eyebrow"><InlineTextEditor Text="@(GetText("HeroEyebrow"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HeroEyebrow", value))" /></p>
+            <h1 id="hero-title"><InlineTextEditor Text="@(GetText("HeroTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HeroTitle", value))" /><br /><span><InlineTextEditor Text="@(GetText("HeroTitleAccent"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HeroTitleAccent", value))" /></span></h1>
+            <p class="hero-intro"><InlineTextEditor Text="@(GetText("HeroIntroduction"))" Label="forsidetekst" Multiline="true" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HeroIntroduction", value))" /></p>
+            <div class="hero-actions">
+                <a class="home-button primary-button" href="/products">Se produkter <span aria-hidden="true">↗</span></a>
+                <a class="text-link" href="/om-lisberg-threads">Mød håndarbejdet bag <span aria-hidden="true">↓</span></a>
+            </div>
+            <p class="hero-note"><InlineTextEditor Text="@(GetText("HeroNote"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HeroNote", value))" /></p>
+        </div>
+        <div class="hero-visual">
+            @if (HeroProduct is { } heroProduct)
+            {
+                <a class="hero-product" href="@($"/products/{heroProduct.Id}")">
+                    <img src="@GetImageUrl(heroProduct)" alt="@heroProduct.Name" fetchpriority="high" />
+                    <div class="hero-caption">
+                        <div><span class="eyebrow">Et lille kig indenfor</span><strong>@heroProduct.Name</strong></div>
+                        <span class="round-arrow" aria-hidden="true">↗</span>
+                    </div>
+                </a>
+            }
+            else
+            {
+                <div class="brand-art" aria-hidden="true"><span>LT</span><p>STRIK · SYNING · OMTANKE</p></div>
+            }
+        </div>
+    </section>
+
+    <div class="craft-note" aria-label="Håndarbejdet hos Lisberg Threads">
+        <span><InlineTextEditor Text="@(GetText("CraftHandmade"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("CraftHandmade", value))" /></span><span><InlineTextEditor Text="@(GetText("CraftEveryday"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("CraftEveryday", value))" /></span><span><InlineTextEditor Text="@(GetText("CraftShop"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("CraftShop", value))" /></span>
+    </div>
+
+    @if (isLoading)
+    {
+        <PageState Title="Henter håndarbejdet" Message="Et øjeblik, mens vi finder produkterne." IsLoading="true" />
+    }
+    else if (loadError is not null)
+    {
+        <PageState Title="Produkterne kunne ikke hentes" Message="@loadError" IsError="true">
+            <button type="button" class="home-button secondary-button" @onclick="LoadProductsAsync">Prøv igen</button>
+        </PageState>
+    }
+    else
+    {
+        @foreach (var section in new[]
+        {
+            (Id: "nye-produkter", Products: newProducts),
+            (Id: "populaere-produkter", Products: popularProducts)
+        })
+        {
+            <section id="@(section.Id)" class="featured-section" aria-labelledby="@(section.Id + "-title")">
+                <div class="section-heading">
+                    <div><p class="eyebrow"><InlineTextEditor Text="@(GetText(section.Id + "Eyebrow"))" Label="sektionstekst" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync(section.Id + "Eyebrow", value))" /></p><h2 id="@(section.Id + "-title")"><InlineTextEditor Text="@(GetText(section.Id + "Title"))" Label="sektionstekst" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync(section.Id + "Title", value))" /></h2><p class="section-intro"><InlineTextEditor Text="@(GetText(section.Id + "Description"))" Label="sektionstekst" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync(section.Id + "Description", value))" /></p></div>
+                    <a class="text-link" href="/products">Se hele sortimentet <span aria-hidden="true">→</span></a>
+                </div>
+                @if (section.Products.Count == 0)
+                {
+                    <div class="state-card">
+                        @if (section.Id == "nye-produkter")
+                        {
+                            <h3><InlineTextEditor Text="@(GetText("NewEmptyTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("NewEmptyTitle", value))" /></h3><p><InlineTextEditor Text="@(GetText("NewEmptyText"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("NewEmptyText", value))" /></p>
+                        }
+                        else
+                        {
+                            <h3><InlineTextEditor Text="@(GetText("PopularEmptyTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("PopularEmptyTitle", value))" /></h3><p><InlineTextEditor Text="@(GetText("PopularEmptyText"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("PopularEmptyText", value))" /></p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="featured-grid">
+                        @foreach (var product in section.Products)
+                        {
+                            <article class="featured-card" @key="product.Id">
+                                <div class="card-gallery"><ProductGallery Product="product" Compact="true" LinkToProduct="true" /></div>
+                                <div class="card-information">
+                                    <p class="stock-label @(product.StockQuantity > 0 ? "available" : "sold-out")"><span aria-hidden="true">●</span> @(product.StockQuantity > 0 ? "På lager" : "Udsolgt")</p>
+                                    <h3><a href="@($"/products/{product.Id}")">@product.Name</a></h3>
+                                    @if (!string.IsNullOrWhiteSpace(product.Size))
+                                    {
+                                        <p class="product-size">Størrelse @product.Size</p>
+                                    }
+                                    <div class="card-bottom"><strong>@product.Price.ToString("C")</strong><a href="@($"/products/{product.Id}")" aria-label="@($"Se {product.Name}")">Se produkt <span aria-hidden="true">↗</span></a></div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+        <div class="browse-all"><a class="home-button primary-button" href="/products">Gå på opdagelse i butikken <span aria-hidden="true">→</span></a></div>
+    }
+
+    <section id="om-lisberg-threads" class="about-section" aria-labelledby="about-title">
+        <div><p class="eyebrow"><InlineTextEditor Text="@(GetText("StoryEyebrow"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StoryEyebrow", value))" /></p><h2 id="about-title"><InlineTextEditor Text="@(GetText("StoryTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StoryTitle", value))" /><br /><InlineTextEditor Text="@(GetText("StoryTitleSecond"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StoryTitleSecond", value))" /></h2><span class="story-signature">Lisberg Threads</span></div>
+        <div class="about-copy"><p><InlineTextEditor Text="@(GetText("StoryIntroduction"))" Label="forsidetekst" Multiline="true" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StoryIntroduction", value))" /></p><p><InlineTextEditor Text="@(GetText("StoryInvitation"))" Label="forsidetekst" Multiline="true" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StoryInvitation", value))" /></p><p class="story-closing"><InlineTextEditor Text="@(GetText("StoryThanks"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StoryThanks", value))" /></p><a class="text-link" href="/products">Se, hvad jeg har lavet <span aria-hidden="true">→</span></a></div>
+    </section>
+
+    <section id="saadan-fungerer-det" class="how-section" aria-labelledby="how-title">
+        <div class="section-heading"><div><p class="eyebrow"><InlineTextEditor Text="@(GetText("HowEyebrow"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HowEyebrow", value))" /></p><h2 id="how-title"><InlineTextEditor Text="@(GetText("HowTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HowTitle", value))" /></h2></div><p><InlineTextEditor Text="@(GetText("HowFlow"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("HowFlow", value))" /></p></div>
+        <ol class="steps">
+            <li><span class="step-number" aria-hidden="true">01</span><h3><InlineTextEditor Text="@(GetText("StepOneTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StepOneTitle", value))" /></h3><p><InlineTextEditor Text="@(GetText("StepOneText"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StepOneText", value))" /></p><a class="text-link" href="/products">Gå på opdagelse <span aria-hidden="true">→</span></a></li>
+            <li><span class="step-number" aria-hidden="true">02</span><h3><InlineTextEditor Text="@(GetText("StepTwoTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StepTwoTitle", value))" /></h3><p><InlineTextEditor Text="@(GetText("StepTwoText"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StepTwoText", value))" /></p><a class="text-link" href="/cart">Se din kurv <span aria-hidden="true">→</span></a></li>
+            <li><span class="step-number" aria-hidden="true">03</span><h3><InlineTextEditor Text="@(GetText("StepThreeTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StepThreeTitle", value))" /></h3><p><InlineTextEditor Text="@(GetText("StepThreeText"))" Label="forsidetekst" Multiline="true" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("StepThreeText", value))" /></p><span class="step-note"><InlineTextEditor Text="@(GetText("GuestNote"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("GuestNote", value))" /></span></li>
+        </ol>
+    </section>
+
+    <footer class="home-footer">
+        <div class="footer-grid">
+            <div class="footer-brand"><a href="/" class="brand-name">Lisberg Threads<span>.</span></a><p><InlineTextEditor Text="@(GetText("FooterTagline"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("FooterTagline", value))" /></p></div>
+            <nav aria-label="Footer – produkter"><h2>Gå på opdagelse</h2><a href="/products">Produkter</a><a href="/om-lisberg-threads">Om Lisberg Threads</a><a href="#saadan-fungerer-det">Sådan fungerer det</a><a href="/kontakt">Kontakt</a></nav>
+            <nav aria-label="Footer – din konto"><h2>Dit overblik</h2><a href="/account">Min konto</a><a href="/orders">Mine ordrer</a><a href="/cart">Din kurv</a></nav>
+            <div id="kontakt" class="footer-info"><h2><InlineTextEditor Text="@(GetText("FooterInformationTitle"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("FooterInformationTitle", value))" /></h2><p><InlineTextEditor Text="@(GetText("FooterInformation"))" Label="forsidetekst" Multiline="true" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("FooterInformation", value))" /></p></div>
+        </div>
+        <div class="footer-bottom"><span>© @DateTime.Now.Year Lisberg Threads</span><span><InlineTextEditor Text="@(GetText("FooterClosing"))" Label="forsidetekst" Multiline="false" Enabled="@contentLoaded" OnSave="@(value => SaveTextAsync("FooterClosing", value))" /></span></div>
+    </footer>
+</div>

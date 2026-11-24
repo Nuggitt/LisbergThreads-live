@@ -1,0 +1,158 @@
+﻿@page "/products/edit/{id:guid}"
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Rediger produkt</PageTitle>
+
+<div class="product-editor edit-product">
+<header class="edit-header">
+    <span class="edit-eyebrow">Lisberg Threads · Produkter</span>
+    <h1>Rediger produkt</h1>
+    <p>Opdatér dit håndarbejdes oplysninger og billeder.</p>
+</header>
+
+@if (IsLoading)
+{
+    <PageState Title="Henter produktet" Message="Et øjeblik, mens vi finder produktets oplysninger." IsLoading="true" Compact="true" />
+}
+else if (Model is null)
+{
+    <PageState Title="Produktet kunne ikke vises" Message="@(ErrorMessage ?? "Produktet blev ikke fundet.")" IsError="true" Compact="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="OnParametersSetAsync">Prøv igen</button>
+        <a class="btn btn-outline-secondary" href="/products">Tilbage til produkter</a>
+    </PageState>
+}
+else
+{
+    <FeedbackNotice Message="@ErrorMessage" IsError="true" />
+
+    <EditForm Model="Model" OnValidSubmit="SaveAsync" class="product-editor-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <section class="edit-section" aria-labelledby="product-information-title">
+        <h2 id="product-information-title">Produktinformation</h2>
+        <div class="mb-3">
+            <label class="form-label">Navn</label>
+            <InputText class="form-control" @bind-Value="Model.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Beskrivelse</label>
+            <InputTextArea class="form-control" @bind-Value="Model.Description" />
+        </div>
+
+        <div class="product-editor-row">
+        <div class="mb-3">
+            <label class="form-label">Størrelse</label>
+            <InputText class="form-control" @bind-Value="Model.Size" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Pris (kr.)</label>
+            <InputNumber class="form-control" @bind-Value="Model.Price" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Lagerantal</label>
+            <InputNumber class="form-control" @bind-Value="Model.StockQuantity" />
+        </div>
+        </div>
+
+        <div class="mb-3 form-check">
+            <InputCheckbox id="product-active" class="form-check-input" @bind-Value="Model.IsActive" />
+            <label class="form-check-label" for="product-active">Aktiv</label>
+        </div>
+        </section>
+
+        <section class="edit-section image-section" aria-labelledby="product-images-title">
+        <h2 id="product-images-title">Produktbilleder</h2>
+        <p class="section-note">Vælg et hovedbillede og eventuelt ekstra billeder.</p>
+        <div class="mb-3">
+            <label class="form-label">Link til hovedbillede</label>
+
+            <InputText class="form-control"
+                       @bind-Value="Model.ImageUrl" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Eller upload et nyt billede</label>
+
+            <InputFile OnChange="UploadImageAsync"
+                       accept=".jpg,.jpeg,.png,.webp"
+                       class="form-control"
+                       disabled="@(IsSaving || IsUploadingAdditionalImages)" />
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <div class="mb-3">
+                <label class="form-label">Nuværende billede</label>
+
+                <div>
+                    <img src="@PreviewImageUrl"
+                         alt="Preview"
+                         style="max-width: 250px;
+                    max-height: 250px;
+                    object-fit: contain;" />
+                </div>
+            </div>
+        }
+        
+        <div class="mb-3">
+            <label class="form-label">Ekstra produktbilleder</label>
+
+            <InputFile OnChange="UploadAdditionalImagesAsync"
+                       multiple
+                       accept=".jpg,.jpeg,.png,.webp"
+                       class="form-control"
+                       disabled="@(IsSaving || IsUploadingAdditionalImages)" />
+
+            <div class="form-text">
+                Højst 5 ekstra billeder. Maks. 5 MB pr. billede.
+            </div>
+        </div>
+
+        @if (IsUploadingAdditionalImages)
+        {
+            <p role="status">Uploader billeder...</p>
+        }
+
+        <div class="d-flex flex-wrap gap-3 mb-3">
+            @foreach (var imageUrl in Model.AdditionalImageUrls)
+            {
+                <div @key="imageUrl">
+                    <img src="@GetAdditionalImageUrl(imageUrl)"
+                         alt="Ekstra produktbillede"
+                         style="width: 120px; height: 120px; object-fit: contain;" />
+
+                    <div class="mt-2">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                disabled="@(IsSaving || IsUploadingAdditionalImages)"
+                                @onclick="() => RemoveAdditionalImage(imageUrl)">
+                            Fjern
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        </section>
+
+        <div class="d-flex gap-2">
+            <button type="submit"
+                    class="btn btn-primary"
+                    disabled="@(IsSaving || IsUploadingAdditionalImages)">
+                @(IsSaving ? "Gemmer..." : "Gem ændringer")
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    @onclick="Cancel"
+                    disabled="@(IsSaving || IsUploadingAdditionalImages)">
+                Annuller
+            </button>
+        </div>
+    </EditForm>
+}
+</div>

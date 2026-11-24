@@ -1,0 +1,95 @@
+@page "/account"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Min konto</PageTitle>
+<div class="account-page">
+<header class="account-header">
+    <span>Lisberg Threads · Min konto</span>
+    <h1>Min konto</h1>
+    <p>Rediger dine oplysninger og din adgangskode.</p>
+</header>
+
+@if (IsLoading)
+{
+    <PageState Title="Henter din konto" Message="Et øjeblik, mens vi finder dine oplysninger." IsLoading="true" Compact="true" />
+}
+else if (!IsLoaded)
+{
+    <PageState Title="Kontoen kunne ikke vises" Message="@LoadError" IsError="true" Compact="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadAsync">Prøv igen</button>
+    </PageState>
+}
+else
+{
+    <section class="mb-4" aria-labelledby="profile-heading">
+        <h2 id="profile-heading" class="h4">Dine oplysninger</h2>
+        @if (ProfileError is not null)
+        {
+            <FeedbackNotice Message="@ProfileError" IsError="true" />
+        }
+        @if (ProfileSuccess is not null)
+        {
+            <FeedbackNotice Message="@ProfileSuccess" />
+        }
+        <EditForm EditContext="ProfileContext" OnSubmit="SaveProfileAsync" novalidate>
+            <DataAnnotationsValidator />
+            <fieldset disabled="@IsBusy">
+                <div class="mb-3">
+                    <label class="form-label" for="account-first-name">Fornavn</label>
+                    <InputText id="account-first-name" class="form-control" autocomplete="given-name" @bind-Value="Profile.FirstName" />
+                    <ValidationMessage For="() => Profile.FirstName" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="account-last-name">Efternavn</label>
+                    <InputText id="account-last-name" class="form-control" autocomplete="family-name" @bind-Value="Profile.LastName" />
+                    <ValidationMessage For="() => Profile.LastName" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="account-email">E-mail</label>
+                    <InputText id="account-email" class="form-control" type="email" autocomplete="email" @bind-Value="Profile.Email" />
+                    <ValidationMessage For="() => Profile.Email" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="account-phone">Telefonnummer</label>
+                    <InputText id="account-phone" class="form-control" type="tel" inputmode="numeric" autocomplete="tel" @bind-Value="Profile.PhoneNumber" />
+                    <ValidationMessage For="() => Profile.PhoneNumber" />
+                </div>
+                <button class="btn btn-primary" type="submit">@(IsSavingProfile ? "Gemmer..." : "Gem oplysninger")</button>
+            </fieldset>
+        </EditForm>
+    </section>
+
+    <section class="mb-4" aria-labelledby="password-heading">
+        <h2 id="password-heading" class="h4">Skift adgangskode</h2>
+        @if (PasswordError is not null)
+        {
+            <FeedbackNotice Message="@PasswordError" IsError="true" />
+        }
+        <EditForm EditContext="PasswordContext" OnSubmit="ChangePasswordAsync" novalidate>
+            <DataAnnotationsValidator />
+            <fieldset disabled="@IsBusy">
+                <div class="mb-3">
+                    <label class="form-label">Nuværende adgangskode</label>
+                    <PasswordInput Value="@Password.CurrentPassword" ValueChanged="OnCurrentPasswordChanged" Autocomplete="current-password" />
+                    <ValidationMessage For="() => Password.CurrentPassword" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ny adgangskode</label>
+                    <PasswordInput Value="@Password.NewPassword" ValueChanged="OnNewPasswordChanged" Autocomplete="new-password" />
+                    <div class="form-text">Mindst 6 tegn, et stort og et lille bogstav, et tal og et specialtegn.</div>
+                    <ValidationMessage For="() => Password.NewPassword" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Bekræft ny adgangskode</label>
+                    <PasswordInput Value="@Password.ConfirmPassword" ValueChanged="OnConfirmPasswordChanged" Autocomplete="new-password" />
+                    <ValidationMessage For="() => Password.ConfirmPassword" />
+                </div>
+                <button class="btn btn-primary" type="submit">@(IsChangingPassword ? "Skifter..." : "Skift adgangskode")</button>
+            </fieldset>
+        </EditForm>
+    </section>
+}
+
+<FeedbackNotice Message="@LogoutError" IsError="true" />
+<button type="button" class="btn btn-outline-secondary" disabled="@IsBusy" @onclick="LogoutAsync">Log ud</button>
+</div>

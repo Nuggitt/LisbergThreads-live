@@ -1,0 +1,14 @@
+.read-only-text { white-space: pre-line; overflow-wrap: anywhere; }
+.editable-text { display: inline; padding: 0; border: 0; border-bottom: 1px dashed #80917c; border-radius: 2px; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: inherit; line-height: inherit; white-space: pre-line; cursor: pointer; overflow-wrap: anywhere; }
+.editable-text:hover { background: #e2ebdf; }
+.edit-pencil { margin-left: .4em; font: normal .75rem sans-serif; color: #52674c; vertical-align: middle; }
+.inline-editor { display: inline-flex; flex-direction: column; gap: 8px; width: 100%; min-width: min(220px, 100%); box-sizing: border-box; padding: 12px; border: 1px solid #a2b29b; border-radius: 8px; background: white; color: #303830; font: normal 14px/1.5 Arial, sans-serif; text-transform: none; letter-spacing: normal; text-align: left; white-space: normal; }
+.inline-editor label { font-weight: 600; }
+.inline-editor input, .inline-editor textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 8px; border: 1px solid #aeb7aa; border-radius: 4px; color: #303830; background: #fff; font: inherit; }
+.inline-editor textarea { resize: vertical; }
+.editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.editor-actions button { padding: 7px 12px; border: 1px solid #c5cfc0; border-radius: 5px; background: #fff; color: #303830; font: inherit; cursor: pointer; }
+.editor-actions .save { color: #fff; background: #198754; border-color: #198754; }
+.editor-actions button:disabled { opacity: .6; cursor: wait; }
+.editor-error { color: #a22c22; font-size: .85rem; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #198754; outline-offset: 3px; }

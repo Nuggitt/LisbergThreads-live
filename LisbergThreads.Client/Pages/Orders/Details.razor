@@ -1,0 +1,153 @@
+﻿@page "/orders/{OrderId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Ordredetaljer</PageTitle>
+
+<div class="overview-page order-details-page">
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <PageState Title="Ordren kunne ikke vises" Message="@ErrorMessage" IsError="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadOrderAsync">Prøv igen</button>
+        <a class="btn btn-outline-secondary" href="/orders">Tilbage til ordreoversigten</a>
+    </PageState>
+}
+else if (Order is null)
+{
+    <PageState Title="Henter ordren" Message="Et øjeblik, mens vi finder ordredetaljerne." IsLoading="true" />
+}
+else
+{
+    <header class="overview-header">
+        <span class="overview-eyebrow">Lisberg Threads · Mine ordrer</span>
+        <h1>Ordre #@Order.OrderId.ToString()[..8].ToUpperInvariant()</h1>
+        <p>Bestilt @Order.CreatedAt.ToString("dd-MM-yyyy HH:mm")</p>
+    </header>
+
+    <div class="row g-4">
+
+        <div class="col-12 col-lg-8">
+
+            <div class="card overview-order-card">
+                <div class="card-body">
+
+                    <h2 class="card-title">
+                        Varer
+                    </h2>
+
+                    @foreach (var item in Order.Items)
+                    {
+                        <div class="order-item">
+
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl"
+                                     alt="@item.Name"
+                                     class="order-item-image" />
+                            }
+
+                            <div class="order-item-description">
+
+                                <strong>@item.Name</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Size))
+                                {
+                                    <div class="text-muted">
+                                        Størrelse: @item.Size
+                                    </div>
+                                }
+
+                                <div class="text-muted">
+                                    @item.Quantity × @item.UnitPrice.ToString("0.00") kr.
+                                </div>
+
+                            </div>
+
+                            <div class="order-item-total">
+                                <strong>
+                                    @item.LineTotal.ToString("0.00") kr.
+                                </strong>
+                            </div>
+
+                        </div>
+                    }
+
+                    <div class="order-total">
+                        <strong>Total</strong>
+
+                        <strong>
+                            @Order.Total.ToString("0.00") kr.
+                        </strong>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-12 col-lg-4">
+
+            <div class="card overview-order-card mb-3">
+                <div class="card-body">
+
+                    <h2 class="card-title">
+                        Ordrestatus
+                    </h2>
+
+                    <p class="mb-1">
+                        <strong>Status:</strong>
+                        <OrderStatusBadge Status="@Order.Status" />
+                    </p>
+
+                    <p class="mb-0">
+                        <strong>Betaling:</strong>
+                        @Order.PaymentStatus
+                    </p>
+
+                </div>
+            </div>
+
+            <div class="card overview-order-card">
+                <div class="card-body">
+
+                    <h2 class="card-title">
+                        Levering
+                    </h2>
+
+                    <p class="mb-1">
+                        @Order.FirstName @Order.LastName
+                    </p>
+
+                    <p class="mb-1">
+                        @Order.Address
+                    </p>
+
+                    <p class="mb-1">
+                        @Order.PostalCode @Order.City
+                    </p>
+
+                    <hr />
+
+                    <p class="mb-1">
+                        @Order.Email
+                    </p>
+
+                    <p class="mb-0">
+                        @Order.Phone
+                    </p>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="mt-4">
+        <a class="btn btn-outline-success"
+           href="/orders">
+            Tilbage til mine ordrer
+        </a>
+    </div>
+}
+</div>

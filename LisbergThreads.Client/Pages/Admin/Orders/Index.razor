@@ -1,0 +1,148 @@
+﻿@page "/admin/orders"
+@using Microsoft.AspNetCore.Authorization
+@using LisbergThreads.Contracts.Orders
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Ordrer</PageTitle>
+
+<div class="overview-page admin-orders-page">
+<header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Administration</span>
+    <h1>Ordreoversigt</h1>
+    <p>Følg kundernes ordrer, og åbn en ordre for at se detaljer og ændre status.</p>
+</header>
+
+<div class="overview-toolbar">
+    <div class="overview-filter">
+        <label class="form-label" for="order-status-filter">
+            Filtrer efter status
+        </label>
+
+        <select id="order-status-filter" class="form-select"
+                @bind="SelectedStatus">
+
+            <option value="">
+                Alle
+            </option>
+
+            @foreach (var status in OrderStatuses.All)
+            {
+                <option value="@status">
+                    @status
+                </option>
+            }
+
+        </select>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="overview-state" role="alert">
+        <h4>Ordrerne kunne ikke hentes</h4>
+        <p>@ErrorMessage</p>
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadOrdersAsync">Prøv igen</button>
+    </div>
+}
+else if (Orders is null)
+{
+    <div class="overview-state" role="status">
+        <span class="spinner-border" aria-hidden="true"></span>
+        <h4>Vi henter ordrerne</h4>
+        <p class="mb-0">Et øjeblik…</p>
+    </div>
+}
+else if (!FilteredOrders.Any())
+{
+    <div class="overview-state" role="status">
+        <h4>@(Orders.Count == 0 ? "Ingen ordrer endnu" : "Ingen ordrer med denne status")</h4>
+        <p class="mb-0">@(Orders.Count == 0 ? "Ordrerne vises her, når kunderne har gennemført checkout." : "Vælg en anden status eller Alle for at se flere ordrer.")</p>
+    </div>
+}
+else
+{
+    <div class="overview-panel">
+    <div class="table-responsive" role="region" aria-label="Ordrer" tabindex="0">
+
+        <table class="table overview-table order-table align-middle">
+
+            <thead>
+                <tr>
+                    <th scope="col">Ordre</th>
+                    <th scope="col">Kunde</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Dato</th>
+                    <th scope="col">Varer</th>
+                    <th scope="col">Total</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Betaling</th>
+                    <th scope="col"><span class="visually-hidden">Handling</span></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var order in FilteredOrders)
+                {
+                    <tr>
+
+                        <td class="overview-reference" data-label="Ordre">
+                            #@order.OrderId.ToString()[..8].ToUpperInvariant()
+                        </td>
+
+                        <td class="overview-name" data-label="Kunde">
+                            <div>
+                                @order.FirstName @order.LastName
+
+                                @if (order.UserId is null)
+                                {
+                                    <div class="small text-muted">
+                                        Gæst
+                                    </div>
+                                }
+                            </div>
+                        </td>
+
+                        <td data-label="E-mail">
+                            @order.Email
+                        </td>
+
+                        <td class="overview-nowrap" data-label="Dato">
+                            @order.CreatedAt.ToString("dd-MM-yyyy HH:mm")
+                        </td>
+
+                        <td data-label="Varer">
+                            @order.TotalItems
+                        </td>
+
+                        <td class="overview-total" data-label="Total">
+                            @order.Total.ToString("0.00") kr.
+                        </td>
+
+                        <td data-label="Status">
+                            <OrderStatusBadge Status="@order.Status" />
+                        </td>
+
+                        <td data-label="Betaling">
+                            @order.PaymentStatus
+                        </td>
+
+                        <td class="overview-action">
+                            <a class="btn btn-outline-success"
+                               aria-label="@($"Se ordre {order.OrderId.ToString()[..8].ToUpperInvariant()}")"
+                               href="@($"/admin/orders/{order.OrderId}")">
+                                Se ordre
+                            </a>
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+    </div>
+}
+</div>

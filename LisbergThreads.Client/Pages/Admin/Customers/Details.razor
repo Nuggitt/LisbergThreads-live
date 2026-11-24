@@ -1,0 +1,126 @@
+﻿@page "/admin/customers/{CustomerId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Kundedetaljer</PageTitle>
+
+<div class="overview-page customer-details-page">
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <PageState Title="Kunden kunne ikke vises" Message="@ErrorMessage" IsError="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="OnParametersSetAsync">Prøv igen</button>
+        <a class="btn btn-outline-secondary" href="/admin/customers">Tilbage til kundeoversigten</a>
+    </PageState>
+}
+else if (Customer is null)
+{
+    <PageState Title="Henter kunden" Message="Et øjeblik, mens vi finder kundens oplysninger." IsLoading="true" />
+}
+else
+{
+    <header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Administration</span>
+    <h1>
+        @Customer.FirstName @Customer.LastName
+    </h1>
+    <p>Kundens kontaktoplysninger, kontostatus og ordrehistorik.</p>
+    </header>
+
+    <section class="overview-panel customer-information" aria-labelledby="customer-information-heading">
+        <h2 id="customer-information-heading">Kundeoplysninger</h2>
+        <dl class="customer-information-grid">
+
+            <div>
+                <dt>E-mail</dt>
+                <dd>@Customer.Email</dd>
+            </div>
+
+            <div>
+                <dt>Telefon</dt>
+                <dd>
+                    @(string.IsNullOrWhiteSpace(Customer.PhoneNumber)
+                        ? "Ikke angivet"
+                        : Customer.PhoneNumber)
+                </dd>
+            </div>
+
+            <div>
+                <dt>Kontostatus</dt>
+                <dd><span class="customer-status @(Customer.IsActive ? "customer-active" : "customer-inactive")">
+                    @(Customer.IsActive ? "Aktiv" : "Deaktiveret")
+                </span></dd>
+            </div>
+
+            <div>
+                <dt>Oprettet</dt>
+                <dd>
+                    @Customer.CreatedAt.ToString("dd-MM-yyyy HH:mm")
+                </dd>
+            </div>
+
+        </dl>
+    </section>
+
+    <section class="mt-4" aria-labelledby="customer-orders-heading">
+        <h2 class="h4" id="customer-orders-heading">Kundens ordrer</h2>
+
+        @if (!string.IsNullOrWhiteSpace(OrdersErrorMessage))
+        {
+            <PageState Title="Kundens ordrer kunne ikke hentes" Message="@OrdersErrorMessage" IsError="true" Compact="true">
+                <button type="button" class="btn btn-outline-secondary" @onclick="OnParametersSetAsync">Prøv igen</button>
+            </PageState>
+        }
+        else if (Orders is null)
+        {
+            <PageState Title="Henter kundens ordrer" Message="Et øjeblik, mens vi finder ordrehistorikken." IsLoading="true" Compact="true" />
+        }
+        else if (Orders.Count == 0)
+        {
+            <PageState Title="Ingen ordrer endnu" Message="Når kunden har afgivet en ordre, vises den her." Compact="true" />
+        }
+        else
+        {
+            <div class="overview-panel">
+            <div class="table-responsive" role="region" aria-label="Kundens ordrehistorik" tabindex="0">
+                <table class="table overview-table customer-order-table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Ordre</th>
+                            <th scope="col">Dato</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Samlet pris</th>
+                            <th scope="col"><span class="visually-hidden">Handling</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in Orders)
+                        {
+                            <tr>
+                                <td class="overview-reference">#@order.OrderId.ToString()[..8].ToUpperInvariant()</td>
+                                <td class="overview-nowrap">@order.CreatedAt.ToString("dd-MM-yyyy HH:mm")</td>
+                                <td><OrderStatusBadge Status="@order.Status" /></td>
+                                <td class="overview-total">@order.Total.ToString("0.00") kr.</td>
+                                <td class="overview-action">
+                                    <a class="btn btn-outline-success"
+                                       aria-label="@($"Se ordre {order.OrderId.ToString()[..8].ToUpperInvariant()}")"
+                                       href="@($"/admin/orders/{order.OrderId}")">
+                                        Se ordre
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        }
+    </section>
+
+    <div class="mt-4">
+        <a class="btn btn-outline-success"
+           href="/admin/customers">
+            Tilbage til kundeoversigten
+        </a>
+    </div>
+}
+</div>

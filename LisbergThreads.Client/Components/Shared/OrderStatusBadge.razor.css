@@ -1,0 +1,29 @@
+.order-status {
+    padding: 0.45em 0.75em;
+    line-height: 1.2;
+}
+
+.placed {
+    color: #664d03;
+    background-color: #fff3cd;
+}
+
+.confirmed {
+    color: #084298;
+    background-color: #cfe2ff;
+}
+
+.shipped {
+    color: #432874;
+    background-color: #e2d9f3;
+}
+
+.completed {
+    color: #0f5132;
+    background-color: #d1e7dd;
+}
+
+.unknown {
+    color: #41464b;
+    background-color: #e2e3e5;
+}

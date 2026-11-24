@@ -1,0 +1,35 @@
+﻿<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <Authorizing>
+                    <p role="status">Kontrollerer adgang...</p>
+                </Authorizing>
+                <NotAuthorized Context="authState">
+                    @if (authState.User.Identity?.IsAuthenticated == true)
+                    {
+                        <RouteNotice Label="403 · Ingen adgang"
+                                     Title="Du har ikke adgang til denne side"
+                                     Message="Din konto har ikke adgang til siden. Du kan fortsætte til forsiden eller se vores produkter." />
+                    }
+                    else
+                    {
+                        <RouteNotice Label="Login påkrævet"
+                                     Title="Log ind for at fortsætte"
+                                     Message="Du skal være logget ind for at se denne side."
+                                     ShowLogin="true" />
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <RouteNotice Label="404 · Siden blev ikke fundet"
+                             Title="Vi kunne ikke finde siden"
+                             Message="Adressen findes ikke. Kontrollér linket, eller fortsæt til forsiden eller vores produkter." />
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

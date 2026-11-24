@@ -1,0 +1,94 @@
+@page "/kontakt"
+@using LisbergThreads.Contracts.Contact
+
+<PageTitle>Kontakt | Lisberg Threads</PageTitle>
+
+<div class="overview-page contact-page">
+    <header class="overview-header">
+        <span class="overview-eyebrow">Lisberg Threads · Skriv til mig</span>
+        <h1>Hvad kan jeg hjælpe med?</h1>
+        <p>Har du spørgsmål til et produkt, en bestilling eller håndarbejdet? Send en besked her.</p>
+    </header>
+
+    <div class="contact-layout">
+        <section class="contact-form-panel" aria-labelledby="contact-form-title">
+            <h2 id="contact-form-title">Send en besked</h2>
+            <FeedbackNotice Message="@error" IsError="true" />
+            <FeedbackNotice Message="@success" />
+
+            <EditForm EditContext="formContext" OnSubmit="SendAsync" novalidate>
+                <DataAnnotationsValidator />
+                <fieldset disabled="@sending">
+                    <div class="mb-3">
+                        <label for="contact-name" class="form-label">Dit navn</label>
+                        <InputText id="contact-name" class="form-control" autocomplete="name" maxlength="100" @bind-Value="model.Name" />
+                        <ValidationMessage For="() => model.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact-email" class="form-label">Din e-mail</label>
+                        <InputText id="contact-email" class="form-control" type="email" autocomplete="email" maxlength="254" @bind-Value="model.Email" />
+                        <ValidationMessage For="() => model.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact-topic" class="form-label">Hvad drejer det sig om?</label>
+                        <InputSelect id="contact-topic" class="form-select" @bind-Value="model.Topic">
+                            <option value="">Vælg et emne</option>
+                            @foreach (var topic in ContactTopics.All)
+                            {
+                                <option value="@topic.Key">@topic.Value</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => model.Topic" />
+                    </div>
+                    @if (ContactTopics.UsesOrder(model.Topic))
+                    {
+                        <div class="mb-3">
+                            <label for="contact-order" class="form-label">Ordrenummer <span>(valgfrit)</span></label>
+                            <InputText id="contact-order" class="form-control" maxlength="120" @bind-Value="model.OrderNumber" />
+                            <ValidationMessage For="() => model.OrderNumber" />
+                        </div>
+                    }
+                    @if (ContactTopics.UsesProduct(model.Topic))
+                    {
+                        <div class="mb-3">
+                            <label for="contact-product" class="form-label">Produktnavn eller link <span>(valgfrit)</span></label>
+                            <InputText id="contact-product" class="form-control" maxlength="500" @bind-Value="model.Product" />
+                            <ValidationMessage For="() => model.Product" />
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label for="contact-message" class="form-label">Din besked</label>
+                        <InputTextArea id="contact-message" class="form-control" rows="7" maxlength="5000" @bind-Value="model.Message" />
+                        <ValidationMessage For="() => model.Message" />
+                        <p class="form-text">Højst 5.000 tegn. Undlad adgangskoder og betalingsoplysninger.</p>
+                    </div>
+                    <div class="contact-website" aria-hidden="true">
+                        <label for="contact-website">Website</label>
+                        <InputText id="contact-website" tabindex="-1" autocomplete="off" @bind-Value="model.Website" />
+                    </div>
+                    <button type="submit" class="btn btn-success" disabled="@(sending || sent)">
+                        @(sending ? "Sender beskeden…" : sent ? "Beskeden er sendt" : "Send besked")
+                    </button>
+                </fieldset>
+            </EditForm>
+        </section>
+
+        <aside class="contact-information" aria-labelledby="contact-information-title">
+            <span class="overview-eyebrow">En personlig henvendelse</span>
+            <h2 id="contact-information-title">Vi tager den på mail</h2>
+            <p>Jeg besvarer din besked på den e-mailadresse, du skriver i formularen.</p>
+            @if (!string.IsNullOrWhiteSpace(info?.ResponseTime))
+            {
+                <p><strong>Forventet svartid</strong><br />@info.ResponseTime</p>
+            }
+            <h3>Spørg gerne om</h3>
+            <ul>
+                <li>Materialer, størrelser og pleje af håndarbejdet</li>
+                <li>Din bestilling og levering</li>
+                <li>Returnering, reklamation eller særlige ønsker</li>
+            </ul>
+            <p class="contact-note">Særlige ønsker og ændringer af en bestilling aftales individuelt.</p>
+            <a class="btn btn-outline-success" href="/products">Se produkter</a>
+        </aside>
+    </div>
+</div>

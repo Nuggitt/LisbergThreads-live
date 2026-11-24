@@ -1,0 +1,51 @@
+.page-state {
+    width: 100%;
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: clamp(1.25rem, 4vw, 3rem);
+    background: var(--lt-surface);
+    border: 1px solid var(--lt-border);
+    border-radius: 18px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.page-state h2 {
+    color: #293b31;
+    font-size: 1.25rem;
+    margin-bottom: .75rem;
+}
+
+.page-state p {
+    color: #627568;
+    margin: 0;
+}
+
+.page-state-spinner {
+    color: #198754;
+    margin-bottom: 1rem;
+}
+
+.page-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    justify-content: center;
+    margin-top: 1.25rem;
+}
+
+.page-state-actions ::deep .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-state-compact {
+    margin: 1rem auto;
+    padding: 1.25rem;
+}
+
+@media (max-width: 480px) {
+    .page-state-actions { flex-direction: column; }
+}

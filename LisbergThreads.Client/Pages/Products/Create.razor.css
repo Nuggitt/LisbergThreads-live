@@ -1,0 +1,90 @@
+.create-product {
+    width: 100%;
+    max-width: 520px;
+    margin-inline: auto;
+    padding-block: 1rem 2rem;
+    color: #293b31;
+}
+
+.create-header {
+    margin-bottom: 1.5rem;
+}
+
+.create-eyebrow {
+    color: #627568;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.create-header h1 {
+    margin: .5rem 0;
+    font-size: 2rem;
+    font-weight: 650;
+    letter-spacing: -.04em;
+}
+
+.create-header p, .section-note {
+    color: #627568;
+    font-size: .9rem;
+}
+
+.create-product ::deep .product-editor-form {
+    padding: clamp(1rem, 4vw, 2rem);
+    background: var(--lt-surface);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgb(41 59 49 / 6%);
+}
+
+.create-section h2 {
+    margin-bottom: 1.25rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.image-section {
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--lt-border);
+}
+
+.image-section h2 {
+    margin-bottom: .5rem;
+}
+
+.create-product ::deep .form-control {
+    border-color: var(--lt-border);
+    background-color: #fff;
+}
+
+.create-product ::deep .form-control:focus {
+    border-color: #708b76;
+    box-shadow: 0 0 0 3px rgb(80 112 88 / 14%);
+}
+
+.create-product ::deep .form-label {
+    font-size: .85rem;
+}
+
+.create-product ::deep .btn-primary {
+    background: #198754;
+    border-color: #198754;
+}
+
+.create-product ::deep .btn-primary:hover {
+    background: #198754;
+    border-color: #198754;
+}
+
+.create-product ::deep .product-editor-row {
+    gap: .75rem;
+}
+
+.create-product ::deep .btn { min-height: 44px; }
+
+@media (min-width: 400px) {
+    .create-product ::deep .product-editor-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}

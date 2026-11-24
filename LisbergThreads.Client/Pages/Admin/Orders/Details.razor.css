@@ -1,0 +1,43 @@
+.admin-order-details-page { max-width: 1200px; }
+.admin-order-details-page .card-title { font-size: 1.15rem; margin-bottom: 1.25rem; }
+.admin-order-details-page .form-label { font-size: .85rem; font-weight: 600; }
+.admin-order-details-page .form-select { min-height: 44px; border-color: var(--lt-border); border-radius: 8px; }
+.admin-order-details-page .form-select:focus {
+    border-color: #708b76;
+    box-shadow: 0 0 0 3px rgb(80 112 88 / 14%);
+}
+.order-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--lt-border);
+}
+.order-item-image {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid var(--lt-border);
+}
+.order-item-description { flex: 1 1 150px; min-width: 0; overflow-wrap: anywhere; }
+.order-item-total { flex: 0 0 auto; margin-left: auto; }
+.order-total {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem;
+    border-radius: 10px;
+    background: var(--lt-surface-strong);
+    font-size: 1.1rem;
+}
+.status-update-button { margin-bottom: 1rem; }
+
+@media (max-width: 575.98px) {
+    .admin-order-details-page > .mt-4 .btn, .status-update-button { width: 100%; }
+}

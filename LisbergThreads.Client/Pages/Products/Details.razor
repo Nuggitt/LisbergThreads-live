@@ -1,0 +1,104 @@
+@page "/products/{id:guid}"
+@using LisbergThreads.Client.Components.Products
+
+<PageTitle>@(Product is null ? "Produktdetaljer" : Product.Name) | Lisberg Threads</PageTitle>
+
+<div class="product-details-page">
+    <a class="back-link" href="/products">
+        <span aria-hidden="true">←</span> Tilbage til produkter
+    </a>
+
+    @if (isLoading)
+    {
+        <PageState Title="Henter produktet" Message="Et øjeblik, mens vi finder produktets oplysninger." IsLoading="true" />
+    }
+    else if (loadError is not null)
+    {
+        <PageState Title="Produktet kunne ikke vises" Message="@loadError" IsError="true">
+            <button type="button" class="btn btn-outline-secondary" @onclick="LoadProduct">Prøv igen</button>
+        </PageState>
+    }
+    else if (Product is not null)
+    {
+        <article class="product-detail-card" aria-labelledby="product-name">
+            <div class="product-visual">
+                <span class="collection-label">Lisberg Threads</span>
+                <div class="product-gallery-frame">
+                    <ProductGallery Product="Product" />
+                </div>
+            </div>
+
+            <div class="product-information">
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <p class="small">Aktivt produkt:
+                            <InlineTextEditor @key="Product.Id" Text="@(Product.IsActive ? "Ja" : "Nej")" Label="aktivt produkt (Ja/Nej)" MaxLength="3" OnSave="@(value => SaveProductFieldAsync("IsActive", value))" />
+                        </p>
+                        <FeedbackNotice Message="@productSaved" />
+                    </Authorized>
+                </AuthorizeView>
+                <header class="product-heading">
+                    <p class="eyebrow">Produktdetaljer</p>
+                    <h1 id="product-name"><InlineTextEditor @key="Product.Id" Text="@(Product.Name)" Label="produktnavn" MaxLength="200" Multiline="false" InputMode="text" OnSave="@(value => SaveProductFieldAsync("Name", value))" /></h1>
+                    <span class="stock-badge @(Product.IsActive && Product.StockQuantity > 0 ? "in-stock" : "unavailable")">
+                        <span class="stock-dot" aria-hidden="true"></span>
+                        @(!Product.IsActive ? "Ikke aktiv" : Product.StockQuantity <= 0 ? "Udsolgt" : $"På lager · {Product.StockQuantity} stk.")
+                    </span>
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <p class="small mt-2">Lagerantal:
+                                <InlineTextEditor @key="Product.Id" Text="@(Product.StockQuantity.ToString())" Label="lagerantal" MaxLength="10" Multiline="false" InputMode="numeric" OnSave="@(value => SaveProductFieldAsync("StockQuantity", value))" />
+                            </p>
+                        </Authorized>
+                    </AuthorizeView>
+                    <p class="product-price"><InlineTextEditor @key="Product.Id" Text="@(Product.Price.ToString(System.Globalization.CultureInfo.CurrentCulture))" DisplayText="@(Product.Price.ToString("C"))" Label="pris" MaxLength="24" Multiline="false" InputMode="decimal" OnSave="@(value => SaveProductFieldAsync("Price", value))" /></p>
+                </header>
+
+                <div class="product-size">
+                    <h2>Størrelse</h2>
+                    <span class="size-value"><InlineTextEditor @key="Product.Id" Text="@(Product.Size ?? string.Empty)" DisplayText="@(string.IsNullOrWhiteSpace(Product.Size) ? "Ikke angivet" : Product.Size)" Label="størrelse" MaxLength="100" Multiline="false" InputMode="text" OnSave="@(value => SaveProductFieldAsync("Size", value))" /></span>
+                </div>
+
+                <section class="purchase-section" aria-label="Køb produkt">
+                    <div class="purchase-controls">
+                        <div class="quantity-control">
+                            <label for="product-quantity">Antal</label>
+                            <input id="product-quantity"
+                                   type="number"
+                                   class="form-control quantity-input"
+                                   min="1"
+                                   max="@Product.StockQuantity"
+                                   step="1"
+                                   disabled="@(!Product.IsActive || Product.StockQuantity <= 0)"
+                                   @bind="selectedQuantity"
+                                   @bind:event="oninput" />
+                        </div>
+                        <button class="btn add-to-cart"
+                                type="button"
+                                disabled="@(!Product.IsActive || Product.StockQuantity <= 0)"
+                                @onclick="AddToCart">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M6 7h12l1 13H5L6 7Z M9 8V6a3 3 0 0 1 6 0v2" />
+                            </svg>
+                            @(!Product.IsActive ? "Ikke tilgængelig" : Product.StockQuantity <= 0 ? "Udsolgt" : "Tilføj til kurv")
+                        </button>
+                    </div>
+                    <p class="purchase-note">Varer i kurven reserveres først ved checkout.</p>
+                    <FeedbackNotice Message="@message" IsError="@messageIsError" />
+                </section>
+
+                <section class="product-description" aria-labelledby="description-heading">
+                    <h2 id="description-heading">Om produktet</h2>
+                    <p><InlineTextEditor @key="Product.Id" Text="@(Product.Description ?? string.Empty)" DisplayText="@(string.IsNullOrWhiteSpace(Product.Description) ? "Der er endnu ingen beskrivelse af dette produkt." : Product.Description)" Label="beskrivelse" MaxLength="10000" Multiline="true" InputMode="text" OnSave="@(value => SaveProductFieldAsync("Description", value))" /></p>
+                </section>
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <div class="product-admin-actions">
+                            <a class="btn btn-edit" href="@($"/products/edit/{Product.Id}")">Rediger</a>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </article>
+    }
+</div>

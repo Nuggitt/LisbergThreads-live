@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta name="referrer" content="no-referrer" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Lisberg Threads</title>
+
+    <base href="/" />
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="LisbergThreads.Client.styles.css" />
+
+    <link rel="icon" type="image/png" href="favicon.png" />
+</head>
+
+<body>
+
+    <div id="app">
+        <svg class="loading-progress" aria-hidden="true">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+
+        <div class="loading-progress-text" role="status" aria-label="Indlæser Lisberg Threads"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Der opstod en fejl. Genindlæs siden. Hvis fejlen opstod under checkout, skal du kontrollere, om ordren blev oprettet, før du bestiller igen.
+        <a href="." class="reload">Genindlæs</a>
+        <button type="button" class="dismiss" aria-label="Luk fejlbesked">×</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+            crossorigin="anonymous"></script>
+
+    <script src="js/cartSidebar.js"></script>
+    <script src="js/search.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+
+</body>
+
+</html>

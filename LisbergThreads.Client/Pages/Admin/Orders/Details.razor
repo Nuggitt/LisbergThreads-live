@@ -1,0 +1,213 @@
+﻿@page "/admin/orders/{OrderId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Ordredetaljer</PageTitle>
+
+<div class="overview-page admin-order-details-page">
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <PageState Title="Ordren kunne ikke vises" Message="@ErrorMessage" IsError="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadOrderAsync">Prøv igen</button>
+        <a class="btn btn-outline-secondary" href="/admin/orders">Tilbage til ordreoversigten</a>
+    </PageState>
+}
+else if (Order is null)
+{
+    <PageState Title="Henter ordren" Message="Et øjeblik, mens vi finder ordredetaljerne." IsLoading="true" />
+}
+else
+{
+    <header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Administration</span>
+    <h1>
+        Ordre #@Order.OrderId.ToString()[..8].ToUpperInvariant()
+    </h1>
+    <p>Bestilt @Order.CreatedAt.ToString("dd-MM-yyyy HH:mm")</p>
+    </header>
+
+    <div class="row g-4">
+
+        <div class="col-12 col-lg-8">
+
+            <div class="card overview-order-card">
+                <div class="card-body">
+
+                    <h2 class="card-title">
+                        Ordrelinjer
+                    </h2>
+
+                    @foreach (var item in Order.Items)
+                    {
+                        <div class="order-item">
+
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl"
+                                     alt="@item.Name"
+                                     class="order-item-image" />
+                            }
+
+                            <div class="order-item-description">
+
+                                <strong>
+                                    @item.Name
+                                </strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Size))
+                                {
+                                    <div class="text-muted">
+                                        Størrelse: @item.Size
+                                    </div>
+                                }
+
+                                <div class="text-muted">
+                                    @item.Quantity × @item.UnitPrice.ToString("0.00") kr.
+                                </div>
+
+                            </div>
+
+                            <strong class="order-item-total">
+                                @item.LineTotal.ToString("0.00") kr.
+                            </strong>
+
+                        </div>
+                    }
+
+                    <div class="order-total">
+                        <strong>Total</strong>
+
+                        <strong>
+                            @Order.Total.ToString("0.00") kr.
+                        </strong>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-12 col-lg-4">
+
+            <div class="card overview-order-card mb-3">
+                <div class="card-body">
+
+                    <h2 class="card-title">
+                        Status
+                    </h2>
+
+                    <div class="mb-3">
+                        <strong>Nuværende ordrestatus:</strong>
+                        <div>
+                            <OrderStatusBadge Status="@Order.Status" />
+                        </div>
+                    </div>
+
+                    @if (AvailableStatuses.Count > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label" for="order-status">
+                                Ændr ordrestatus
+                            </label>
+
+                            <select id="order-status" class="form-select"
+                                    @bind="SelectedStatus"
+                                    disabled="@IsUpdatingStatus">
+
+                                <option value="">
+                                    Vælg status
+                                </option>
+
+                                @foreach (var status in AvailableStatuses)
+                                {
+                                    <option value="@status">
+                                        @status
+                                    </option>
+                                }
+
+                            </select>
+                        </div>
+
+                        <button type="button"
+                                class="btn btn-success status-update-button"
+                                @onclick="UpdateStatusAsync"
+                                disabled="@(IsUpdatingStatus || string.IsNullOrWhiteSpace(SelectedStatus))">
+
+                            @(IsUpdatingStatus
+                                ? "Opdaterer..."
+                                : "Opdater status")
+
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="text-muted mb-3">
+                            Ordren har nået sin endelige status.
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(StatusMessage))
+                    {
+                        <FeedbackNotice Message="@StatusMessage" />
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(StatusErrorMessage))
+                    {
+                        <FeedbackNotice Message="@StatusErrorMessage" IsError="true" />
+                        <button type="button" class="btn btn-outline-success mt-2" disabled="@IsUpdatingStatus" @onclick="LoadOrderAsync">Hent ordre igen</button>
+                    }
+
+                    <hr />
+
+                    <div>
+                        <strong>Betaling:</strong>
+                        @Order.PaymentStatus
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card overview-order-card">
+                <div class="card-body">
+
+                    <h2 class="card-title">
+                        Kunde
+                    </h2>
+
+                    <div>
+                        @Order.FirstName @Order.LastName
+                    </div>
+
+                    <div>
+                        @Order.Email
+                    </div>
+
+                    <div>
+                        @Order.Phone
+                    </div>
+
+                    <hr />
+
+                    <div>
+                        @Order.Address
+                    </div>
+
+                    <div>
+                        @Order.PostalCode @Order.City
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="mt-4">
+        <a class="btn btn-outline-success"
+           href="/admin/orders">
+            Tilbage til ordreoversigt
+        </a>
+    </div>
+}
+</div>

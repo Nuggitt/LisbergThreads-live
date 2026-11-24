@@ -1,0 +1,95 @@
+﻿@using LisbergThreads.Contracts.Orders
+@implements IDisposable
+
+<div class="offcanvas offcanvas-end cart-sidebar" tabindex="-1" id="cartSidebar" aria-labelledby="cartSidebarLabel">
+    <div class="offcanvas-header">
+        <div>
+            <span class="sidebar-eyebrow">Lisberg Threads</span>
+            <h2 class="offcanvas-title" id="cartSidebarLabel">Min kurv</h2>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Luk kurven"></button>
+    </div>
+
+    <div class="offcanvas-body">
+        <FeedbackNotice Message="@message" IsError="@messageIsError" />
+
+        @if (cart is null)
+        {
+            @if (loadError is not null)
+            {
+                <PageState Title="Kurven kunne ikke hentes" Message="@loadError" IsError="true" Compact="true">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="LoadCart">Prøv igen</button>
+                </PageState>
+            }
+            else { <PageState Title="Henter din kurv" Message="Et øjeblik, mens vi finder dine varer." IsLoading="true" Compact="true" /> }
+        }
+        else if (cart.Items.Count == 0)
+        {
+            <PageState Title="Din kurv er tom" Message="Find dit næste håndarbejde blandt vores produkter." Compact="true">
+                <button type="button" class="btn btn-success" @onclick="GoToProducts">Se produkter</button>
+            </PageState>
+        }
+        else
+        {
+            @foreach (var item in cart.Items)
+            {
+                <div class="cart-item" @key="item.ProductId">
+                    <div class="cart-item-content">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <button type="button" class="cart-product-link" aria-label="@($"Se {item.Name}")" @onclick="() => GoToProduct(item.ProductId)">
+                            <img src="@item.ImageUrl"
+                                 alt="@item.Name"
+                                 class="cart-product-image" />
+                            </button>
+                        }
+
+                        <div class="cart-item-details">
+                            <h3>@item.Name</h3>
+                            <div class="cart-item-meta">Størrelse: @item.Size</div>
+                            <div class="cart-item-meta">Pris: @item.UnitPrice.ToString("C")</div>
+
+                            <div class="cart-quantity">
+                                <button type="button" class="btn btn-outline-success"
+                                        aria-label="@($"Færre {item.Name}")" disabled="@(item.Quantity <= 1)"
+                                        @onclick="() => ChangeQuantity(item.ProductId, item.Quantity - 1)">
+                                    -
+                                </button>
+
+                                <span>@item.Quantity</span>
+
+                                <button type="button" class="btn btn-outline-success"
+                                        aria-label="@($"Flere {item.Name}")"
+                                        @onclick="() => ChangeQuantity(item.ProductId, item.Quantity + 1)">
+                                    +
+                                </button>
+                            </div>
+
+                            <div class="cart-line-total">
+                                Linjetotal: <strong>@item.LineTotal.ToString("C")</strong>
+                            </div>
+
+                            <button type="button" class="btn btn-outline-danger cart-remove"
+                                    aria-label="@($"Fjern {item.Name} fra kurven")"
+                                    @onclick="() => RemoveFromCart(item.ProductId)">
+                                Fjern
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="cart-total"><span>Total</span><strong>@cart.Total.ToString("C")</strong></div>
+
+            <div class="cart-actions">
+            <button type="button" class="btn btn-outline-success" @onclick="GoToCart">
+                Gå til kurv
+            </button>
+
+            <button type="button" class="btn btn-success" @onclick="Checkout">
+                Checkout
+            </button>
+            </div>
+        }
+    </div>
+</div>

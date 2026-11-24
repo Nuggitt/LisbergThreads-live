@@ -1,0 +1,148 @@
+.product-state {
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: clamp(1.5rem, 4vw, 3rem);
+    background: var(--lt-surface);
+    border: 1px solid var(--lt-border);
+    border-radius: 18px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.product-state h4 {
+    color: #293b31;
+    font-size: 1.25rem;
+    margin-bottom: .75rem;
+}
+
+.product-state p {
+    color: #627568;
+}
+
+.product-state-spinner {
+    color: #198754;
+    margin-bottom: 1rem;
+}
+
+.stock-label {
+    font-size: .74rem;
+}
+
+.stock-label span {
+    font-size: .6rem;
+    margin-right: 5px;
+}
+
+.available {
+    color: #198754;
+}
+
+.sold-out {
+    color: #9b4235;
+}
+
+.inactive {
+    color: #626262;
+}
+
+.products-page {
+    width: 100%;
+    max-width: 2160px;
+    margin-inline: auto;
+}
+
+.product-status-filter {
+    width: 280px;
+    max-width: 100%;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 340px));
+    gap: 24px;
+    align-items: start;
+    justify-content: center;
+}
+
+.product-column {
+    display: flex;
+    min-width: 0;
+}
+
+.card {
+    min-width: 0;
+    background: var(--lt-surface);
+    border-color: var(--lt-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.card-body, .list-group-item {
+    background: var(--lt-surface);
+}
+
+.list-group-item {
+    border-color: var(--lt-border);
+}
+
+.product-actions {
+    flex-grow: 0;
+    padding-top: 4px;
+}
+
+.admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.admin-actions ::deep .btn {
+    min-width: 0;
+    padding-inline: .5rem;
+    font-size: .875rem;
+}
+
+.purchase-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    flex: 0 0 auto;
+}
+
+.purchase-controls > .btn {
+    min-width: 0;
+}
+
+.quantity-control {
+    flex: 0 0 auto;
+}
+
+.quantity-control label {
+    display: block;
+    font-size: .875rem;
+}
+
+.quantity-input {
+    width: 4.5rem;
+    min-height: 44px;
+    padding: .375rem .5rem;
+}
+
+.quantity-input::-webkit-inner-spin-button {
+    opacity: 1;
+}
+
+.product-actions ::deep .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+}
+
+@media (max-width: 575.98px) {
+    .product-grid { gap: 16px; }
+    .admin-actions ::deep .btn { flex: 1 1 auto; }
+}

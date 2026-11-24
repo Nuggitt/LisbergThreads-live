@@ -1,0 +1,21 @@
+<div class="content-image-editor">
+    @if (!string.IsNullOrWhiteSpace(ImageUrl))
+    {
+        <img src="@ImageUrl" alt="@Label" loading="lazy" />
+    }
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <div class="image-controls">
+                <label for="@inputId">@(string.IsNullOrWhiteSpace(ImageUrl) ? "Upload billede" : "Udskift billede") · @Label</label>
+                <InputFile id="@inputId" OnChange="UploadAsync" accept=".jpg,.jpeg,.png,.webp" disabled="@(!Enabled || busy)" />
+                <small>JPG, PNG eller WebP · højst 5 MB</small>
+                @if (!string.IsNullOrWhiteSpace(ImageUrl))
+                {
+                    <button type="button" class="btn btn-outline-danger" disabled="@(!Enabled || busy)" @onclick="RemoveAsync">Fjern billede fra siden</button>
+                }
+                @if (busy) { <p role="status">Gemmer billedet…</p> }
+                <FeedbackNotice Message="@error" IsError="true" />
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>

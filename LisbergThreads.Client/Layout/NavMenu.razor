@@ -1,0 +1,350 @@
+@using LisbergThreads.Client.Components.Shared
+@using LisbergThreads.Client.Services
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <NavLink class="navbar-brand nav-brand-mark" href="/" Match="NavLinkMatch.All"
+                 aria-label="Lisberg Threads – gå til forsiden">
+            <img class="nav-logo" src="images/lisberg-threads-mark.svg" alt="" width="48" height="48" />
+        </NavLink>
+
+        <NavLink class="navbar-brand" href="/" Match="NavLinkMatch.All">
+            Lisberg Threads
+        </NavLink>
+
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent"
+                aria-expanded="false"
+                aria-label="Åbn eller luk navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse navbar-content"
+             id="navbarSupportedContent">
+
+            <ul class="navbar-nav nav-main-links mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/products">
+                        Produkter
+                    </NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/om-lisberg-threads">Om Lisberg Threads</NavLink>
+                </li>
+
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/kontakt">Kontakt</NavLink>
+                </li>
+
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle"
+                               href="#"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                Admin
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <NavLink class="dropdown-item"
+                                             href="/products/create">
+                                        Opret produkt
+                                    </NavLink>
+                                </li>
+
+                                <li>
+                                    <NavLink class="dropdown-item"
+                                             href="/admin/orders">
+                                        Ordreoversigt
+                                    </NavLink>
+                                </li>
+
+                                <li>
+                                    <NavLink class="dropdown-item"
+                                             href="/admin/customers">
+                                        Kundeoversigt
+                                    </NavLink>
+                                </li>
+
+                            </ul>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+
+            </ul>
+
+            <div class="nav-search"
+                 @ref="SearchContainer">
+
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle search-type-button"
+                            type="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                        @GetSearchTypeLabel()
+                    </button>
+
+                    <ul class="dropdown-menu">
+
+                        <li>
+                            <button class="dropdown-item"
+                                    type="button"
+                                    @onclick="() => SelectSearchType(SearchType.Products)">
+                                Produkter
+                            </button>
+                        </li>
+
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+
+                                <li>
+                                    <button class="dropdown-item"
+                                            type="button"
+                                            @onclick="() => SelectSearchType(SearchType.Admin)">
+                                        Admin
+                                    </button>
+                                </li>
+
+                            </Authorized>
+                        </AuthorizeView>
+
+                    </ul>
+                </div>
+
+                <input class="form-control nav-search-input"
+                       type="search"
+                       placeholder="@GetSearchPlaceholder()"
+                       aria-label="Søg"
+                       value="@SearchService.SearchText"
+                       @oninput="OnSearchInput"
+                       @onfocus="OpenSearch"
+                       @onkeydown="OnSearchKeyDown" />
+
+                @* PRODUKTER *@
+                @if (IsSearchOpen &&
+                     SearchService.SearchType == SearchType.Products &&
+                     !string.IsNullOrWhiteSpace(SearchService.SearchText))
+                {
+                    <div class="search-results">
+
+                        @if (SearchService.ProductSuggestions.Any())
+                        {
+                            @foreach (var product in SearchService.ProductSuggestions)
+                            {
+                                <button type="button"
+                                        class="search-result-item"
+                                        @onclick="() => OpenProduct(product.Id)">
+
+                                    <div class="search-result-product">
+
+                                        <img src="@GetProductImageUrl(product.ImageUrl)"
+                                             alt="@product.Name"
+                                             class="search-result-image" />
+
+                                        <div class="search-result-info">
+                                            <span class="search-result-name">
+                                                @product.Name
+                                            </span>
+                                        </div>
+
+                                    </div>
+
+                                    <span class="search-result-price">
+                                        @product.Price.ToString("0.00") kr.
+                                    </span>
+
+                                </button>
+                            }
+
+                            <button type="button"
+                                    class="search-result-all"
+                                    @onclick="ShowAllProductResults">
+
+                                <span>Se alle resultater</span>
+                                <span class="search-result-arrow">→</span>
+
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="search-no-results">
+                                Ingen produkter fundet
+                            </div>
+                        }
+
+                    </div>
+                }
+
+                @* ADMIN: KUNDER OG ORDRER *@
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        @if (IsSearchOpen && SearchService.SearchType == SearchType.Admin &&
+                             (IsSearchLoading || SearchErrorMessage is not null ||
+                              !string.IsNullOrWhiteSpace(SearchService.SearchText)))
+                        {
+                            <div class="search-results admin-search-results" aria-live="polite">
+                                @if (IsSearchLoading)
+                                {
+                                    <div class="search-no-results" role="status">
+                                        Indlæser kunder og ordrer...
+                                    </div>
+                                }
+                                else if (SearchErrorMessage is not null)
+                                {
+                                    <div class="search-no-results" role="alert">
+                                        @SearchErrorMessage
+                                    </div>
+                                    <button type="button" class="search-result-all"
+                                            @onclick="RetryAdminSearch">
+                                        Prøv igen
+                                    </button>
+                                }
+                                else
+                                {
+                                    var customers = SearchService.CustomerSuggestions.ToList();
+                                    var orders = SearchService.OrderSuggestions.ToList();
+
+                                    @if (customers.Count > 0)
+                                    {
+                                        <h6 class="search-result-group">Kunder</h6>
+                                        @foreach (var customer in customers)
+                                        {
+                                            <button type="button" class="search-result-item"
+                                                    @onclick="() => OpenCustomer(customer.Id)">
+                                                <div class="search-result-info">
+                                                    <span class="search-result-name">
+                                                        @customer.FirstName @customer.LastName
+                                                    </span>
+                                                    <span class="search-result-detail">@customer.Email</span>
+                                                </div>
+                                                <span class="badge bg-secondary">Kunde</span>
+                                            </button>
+                                        }
+                                    }
+
+                                    @if (orders.Count > 0)
+                                    {
+                                        <h6 class="search-result-group">Ordrer</h6>
+                                        @foreach (var order in orders)
+                                        {
+                                            <button type="button" class="search-result-item"
+                                                    @onclick="() => OpenOrder(order.OrderId)">
+                                                <div class="search-result-info">
+                                                    <span class="search-result-name">
+                                                        Ordre #@order.OrderId.ToString()[..8].ToUpperInvariant()
+                                                    </span>
+                                                    <span class="search-result-detail">
+                                                        @order.FirstName @order.LastName
+                                                    </span>
+                                                    <span class="search-result-detail">@order.Status</span>
+                                                </div>
+                                                <span class="search-result-price">
+                                                    @order.Total.ToString("0.00") kr.
+                                                </span>
+                                            </button>
+                                        }
+                                    }
+
+                                    @if (customers.Count == 0 && orders.Count == 0)
+                                    {
+                                        <div class="search-no-results">
+                                            Ingen kunder eller ordrer fundet
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </Authorized>
+                </AuthorizeView>
+
+            </div>
+
+            <ul class="navbar-nav nav-account-links">
+                <AuthorizeView>
+                    <Authorized Context="auth">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center"
+                               href="#"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                <i class="bi bi-person-circle fs-4"></i>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <span class="dropdown-item-text">
+                                        @auth.User.Identity?.Name
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <NavLink class="dropdown-item" href="/account">
+                                        Min konto
+                                    </NavLink>
+                                </li>
+
+                                <li>
+                                    <NavLink class="dropdown-item"
+                                             href="/orders">
+                                        Mine ordrer
+                                    </NavLink>
+                                </li>
+
+                                <li>
+                                    <hr class="dropdown-divider" />
+                                </li>
+
+                                <li>
+                                    <button class="dropdown-item"
+                                            type="button"
+                                            @onclick="Logout">
+                                        Log ud
+                                    </button>
+                                </li>
+                            </ul>
+                        </li>
+                    </Authorized>
+
+                    <NotAuthorized>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center"
+                               href="#"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                <i class="bi bi-person-circle fs-4"></i>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <NavLink class="dropdown-item" href="/login">
+                                        Log in
+                                    </NavLink>
+                                </li>
+
+                                <li>
+                                    <NavLink class="dropdown-item" href="/register">
+                                        Opret Bruger
+                                    </NavLink>
+                                </li>
+                            </ul>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+
+                <li class="nav-item me-2">
+                    <CartNavLink />
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<FeedbackNotice Message="@logoutError" IsError="true" />

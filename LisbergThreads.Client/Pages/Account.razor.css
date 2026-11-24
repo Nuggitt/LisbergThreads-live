@@ -1,0 +1,47 @@
+.account-page {
+    width: 100%;
+    max-width: 520px;
+    margin-inline: auto;
+    padding-block: 1rem 2rem;
+    color: #293b31;
+}
+
+.account-header { margin-bottom: 1.5rem; }
+.account-header span {
+    color: #627568;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.account-header h1 {
+    margin: .5rem 0;
+    font-size: 2rem;
+    font-weight: 650;
+    letter-spacing: -.04em;
+}
+.account-header p { color: #627568; font-size: .9rem; }
+.account-page section {
+    padding: clamp(1rem, 4vw, 2rem);
+    background: var(--lt-surface);
+    border: 1px solid var(--lt-border);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgb(41 59 49 / 6%);
+}
+.account-page h2 { font-size: 1.05rem; font-weight: 650; margin-bottom: 1.25rem; }
+.account-page ::deep .form-label { font-size: .85rem; font-weight: 600; }
+.account-page ::deep .form-control {
+    min-height: 44px;
+    border-color: var(--lt-border);
+    border-radius: 8px;
+    background: #fff;
+}
+.account-page ::deep .form-control:focus {
+    border-color: #708b76;
+    box-shadow: 0 0 0 3px rgb(80 112 88 / 14%);
+}
+.account-page ::deep .btn { min-height: 44px; }
+.account-page ::deep .btn-primary, .account-page ::deep .btn-primary:hover {
+    background: #198754;
+    border-color: #198754;
+}

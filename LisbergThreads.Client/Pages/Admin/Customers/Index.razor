@@ -1,0 +1,69 @@
+@page "/admin/customers"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Kunder</PageTitle>
+
+<div class="overview-page admin-customers-page">
+<header class="overview-header">
+    <span class="overview-eyebrow">Lisberg Threads · Administration</span>
+    <h1>Kundeoversigt</h1>
+    <p>Find registrerede kunder, og åbn deres oplysninger og ordrehistorik.</p>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="overview-state" role="alert">
+        <h4>Kunderne kunne ikke hentes</h4>
+        <p>@ErrorMessage</p>
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadCustomersAsync">Prøv igen</button>
+    </div>
+}
+else if (Customers is null)
+{
+    <div class="overview-state" role="status">
+        <span class="spinner-border" aria-hidden="true"></span>
+        <h4>Vi henter kunderne</h4>
+        <p class="mb-0">Et øjeblik…</p>
+    </div>
+}
+else if (Customers.Count == 0)
+{
+    <div class="overview-state" role="status">
+        <h4>Ingen kunder endnu</h4>
+        <p class="mb-0">Registrerede kunder vises her, når de har oprettet en konto.</p>
+    </div>
+}
+else
+{
+    <div class="overview-panel">
+    <div class="table-responsive" role="region" aria-label="Registrerede kunder" tabindex="0">
+        <table class="table overview-table customer-table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Navn</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col"><span class="visually-hidden">Handling</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var customer in Customers)
+                {
+                    <tr>
+                        <td class="overview-name" data-label="Navn">@customer.FirstName @customer.LastName</td>
+                        <td data-label="E-mail">@customer.Email</td>
+                        <td class="overview-action">
+                            <a class="btn btn-outline-success"
+                               aria-label="@($"Se kunde {customer.FirstName} {customer.LastName}")"
+                               href="@($"/admin/customers/{customer.Id}")">
+                                Se kunde
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    </div>
+}
+</div>

@@ -1,0 +1,47 @@
+.route-notice {
+    max-width: 640px;
+    margin: clamp(1.5rem, 6vw, 4rem) auto;
+    padding: clamp(1.25rem, 5vw, 3rem);
+    background: var(--lt-surface);
+    border: 1px solid var(--lt-border);
+    border-radius: 20px;
+    color: #293b31;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.route-notice-label {
+    color: #627568;
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+.route-notice h1 {
+    margin: .75rem 0 1rem;
+    font-size: clamp(1.6rem, 5vw, 2.25rem);
+}
+
+.route-notice p {
+    color: #627568;
+    margin-bottom: 1.5rem;
+}
+
+.route-notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .75rem;
+}
+
+.route-notice-actions .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 480px) {
+    .route-notice-actions {
+        flex-direction: column;
+    }
+}

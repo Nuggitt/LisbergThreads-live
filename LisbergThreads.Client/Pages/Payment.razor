@@ -1,0 +1,32 @@
+@page "/payment/{PaymentId:guid}"
+
+<PageTitle>MobilePay | Lisberg Threads</PageTitle>
+
+<div class="overview-page">
+    <header class="overview-header">
+        <span class="overview-eyebrow">Lisberg Threads · MobilePay</span>
+        <h1>Din betaling</h1>
+    </header>
+    <FeedbackNotice Message="@ErrorMessage" IsError="true" />
+    @if (Status?.IsActive == true || IsLoading)
+    {
+        <PageState Title="Afventer bekræftelse" Message="Godkend betalingen i MobilePay. Vi kontrollerer betalingen og lageret, før ordren oprettes." IsLoading="@IsLoading" />
+    }
+    else if (Status is not null)
+    {
+        <PageState Title="Bestillingen blev ikke gennemført" Message="@ResultMessage" />
+    }
+    @if (!string.IsNullOrWhiteSpace(Status?.RedirectUrl) && Status.IsActive)
+    {
+        <a class="btn btn-success me-2" href="@Status.RedirectUrl">Fortsæt til MobilePay</a>
+    }
+    <button class="btn btn-outline-success me-2" disabled="@IsLoading" @onclick="CheckAsync">Hent betalingsstatus igen</button>
+    @if (CanRetryStart)
+    {
+        <button class="btn btn-success" disabled="@IsLoading" @onclick="RetryStartAsync">Genoptag samme betalingsforsøg</button>
+    }
+    @if (Status is { IsActive: false })
+    {
+        <a class="btn btn-outline-success" href="/cart">Tilbage til kurven</a>
+    }
+</div>

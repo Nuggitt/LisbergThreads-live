@@ -1,0 +1,36 @@
+.order-details-page { max-width: 1200px; }
+.order-details-page .card-title { font-size: 1.15rem; margin-bottom: 1.25rem; }
+.order-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--lt-border);
+}
+.order-item-image {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid var(--lt-border);
+}
+.order-item-description { flex: 1 1 150px; min-width: 0; overflow-wrap: anywhere; }
+.order-item-total { flex: 0 0 auto; margin-left: auto; }
+.order-total {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem;
+    border-radius: 10px;
+    background: var(--lt-surface-strong);
+    font-size: 1.1rem;
+}
+
+@media (max-width: 575.98px) {
+    .order-details-page > .mt-4 .btn { width: 100%; }
+}

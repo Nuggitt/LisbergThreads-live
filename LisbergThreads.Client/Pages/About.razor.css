@@ -1,0 +1,29 @@
+.about-page { max-width: 1200px; margin-inline: auto; padding-block: 1rem 3rem; color: #293b31; overflow-wrap: anywhere; }
+.about-hero { padding: clamp(1.5rem, 5vw, 3.5rem); border-radius: 22px; background: var(--lt-surface); border: 1px solid var(--lt-border); }
+.about-eyebrow { color: #627568; font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.about-hero h1 { font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.04em; margin: .75rem 0 1.25rem; }
+.about-page p { line-height: 1.8; white-space: pre-line; }
+.about-links { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; margin-top: 1.5rem; }
+.about-links a { color: #28613d; text-underline-offset: 4px; padding-block: .5rem; }
+.about-admin-note { padding: 1.25rem; margin-block: 1.5rem; background: var(--lt-surface); border: 1px solid var(--lt-border); border-radius: 12px; }
+.about-story, .about-process { margin-top: 3rem; scroll-margin-top: 1.5rem; }
+.about-story { padding: clamp(1.25rem, 4vw, 2rem); border: 1px solid var(--lt-border); border-radius: 18px; background: var(--lt-surface); }
+.about-page h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); margin: .6rem 0 1.25rem; font-weight: 600; }
+.about-page h3 { font-size: 1.1rem; margin-bottom: .75rem; font-weight: 600; }
+.history-texts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+.history-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.process-header { margin-bottom: 1.5rem; }
+.process-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; padding: 0; list-style: none; }
+.process-card { min-width: 0; padding: 1.5rem; background: var(--lt-surface); border: 1px solid var(--lt-border); border-radius: 16px; }
+.process-number { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; height: 44px; border-radius: 50%; background: #e0eade; color: #425b49; font-weight: 600; margin-bottom: 1rem; }
+.about-visit { text-align: center; padding: 2rem 1.25rem; margin-top: 3rem; border: 1px solid var(--lt-border); border-radius: 18px; background: var(--lt-surface); }
+.about-page .btn { min-height: 44px; }
+@media (max-width: 991.98px) {
+    .process-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .history-texts { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+}
+@media (max-width: 575.98px) {
+    .process-grid, .history-images { grid-template-columns: minmax(0, 1fr); }
+    .process-card { padding: 1.25rem; }
+    .about-visit .btn { width: 100%; }
+}

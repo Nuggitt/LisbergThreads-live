@@ -1,0 +1,55 @@
+@namespace LisbergThreads.Client.Components.Products
+
+<div class="product-gallery @(Compact ? "compact" : "") @(imageUrls.Count > 1 ? "has-multiple-images" : "")">
+    @if (imageUrls.Count == 0)
+    {
+        <div class="gallery-empty">Produktet har ingen billeder.</div>
+    }
+    else
+    {
+        @if (LinkToProduct)
+        {
+            <a class="gallery-image-link" href="@($"/products/{Product.Id}")"
+               aria-label="@($"Se detaljer om {Product.Name}")">
+                <img class="gallery-main-image"
+                     src="@GetImageUrl(imageUrls[selectedIndex])"
+                     alt="@($"{Product.Name}, billede {selectedIndex + 1}")" />
+            </a>
+        }
+        else
+        {
+        <img class="gallery-main-image"
+             src="@GetImageUrl(imageUrls[selectedIndex])"
+             alt="@($"{Product.Name}, billede {selectedIndex + 1}")" />
+        }
+
+        @if (imageUrls.Count > 1)
+        {
+                <button type="button" class="gallery-arrow gallery-arrow-previous"
+                        aria-label="@($"Forrige billede af {Product.Name}")"
+                        @onclick="() => MoveImage(-1)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6" /></svg>
+                </button>
+                <span class="visually-hidden" aria-live="polite">Billede @(selectedIndex + 1) af @imageUrls.Count</span>
+                <button type="button" class="gallery-arrow gallery-arrow-next"
+                        aria-label="@($"Næste billede af {Product.Name}")"
+                        @onclick="() => MoveImage(1)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 6 6 6-6 6" /></svg>
+                </button>
+
+            <div class="gallery-thumbnails">
+                @for (var i = 0; i < imageUrls.Count; i++)
+                {
+                    var index = i;
+                    <button type="button"
+                            class="gallery-thumbnail @(selectedIndex == index ? "selected" : "")"
+                            aria-label="@($"Vis billede {index + 1} af {Product.Name}")"
+                            aria-pressed="@(selectedIndex == index ? "true" : "false")"
+                            @onclick="() => selectedIndex = index">
+                        <img src="@GetImageUrl(imageUrls[index])" alt="" loading="lazy" />
+                    </button>
+                }
+            </div>
+        }
+    }
+</div>

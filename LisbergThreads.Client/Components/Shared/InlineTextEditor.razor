@@ -1,0 +1,37 @@
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        @if (editing)
+        {
+            <span class="inline-editor" @onclick:stopPropagation="true">
+                <label for="@inputId">@Label</label>
+                @if (Multiline)
+                {
+                    <textarea id="@inputId" @ref="input" rows="4" maxlength="@MaxLength" disabled="@saving" @bind="draft" @bind:event="oninput" @onkeydown="HandleMultilineKey"></textarea>
+                }
+                else
+                {
+                    <input id="@inputId" @ref="input" type="text" inputmode="@InputMode" maxlength="@MaxLength" disabled="@saving" @bind="draft" @bind:event="oninput" @onkeydown="HandleKey" />
+                }
+                <span class="editor-actions">
+                    <button type="button" class="save" disabled="@saving" @onclick="SaveAsync">@(saving ? "Gemmer…" : "Gem")</button>
+                    <button type="button" disabled="@saving" @onclick="Cancel">Annullér</button>
+                </span>
+                @if (error is not null)
+                {
+                    <span class="editor-error" role="alert">@error</span>
+                }
+            </span>
+        }
+        else if (Enabled)
+        {
+            <button type="button" class="editable-text" @onclick="BeginEdit" aria-label="@($"Rediger {Label}")" title="Klik for at redigere">
+                @(DisplayText ?? Text)<span class="edit-pencil" aria-hidden="true">✎</span>
+            </button>
+        }
+        else
+        {
+            <span class="read-only-text">@(DisplayText ?? Text)</span>
+        }
+    </Authorized>
+    <NotAuthorized><span class="read-only-text">@(DisplayText ?? Text)</span></NotAuthorized>
+</AuthorizeView>

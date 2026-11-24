@@ -1,0 +1,138 @@
+﻿@page "/orders/confirmation/{OrderId:guid}"
+
+<PageTitle>Ordrebekræftelse</PageTitle>
+
+<h3>Ordrebekræftelse</h3>
+
+@if (IsLoading)
+{
+    <PageState Title="Henter din ordrebekræftelse" Message="Et øjeblik, mens vi finder ordren." IsLoading="true" />
+}
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <PageState Title="Ordrebekræftelsen kunne ikke vises" Message="@ErrorMessage" IsError="true">
+        <button type="button" class="btn btn-outline-secondary" @onclick="LoadOrderAsync">Prøv igen</button>
+        <a class="btn btn-outline-secondary" href="/products">Se produkter</a>
+    </PageState>
+}
+else if (Order is not null)
+{
+    <FeedbackNotice Message="@($"Tak for din ordre, {Order.FirstName}! Din ordre er modtaget.")" />
+    @if (CartCleanupFailed)
+    {
+        <FeedbackNotice Message="Ordren er oprettet, men gæstekurven kunne ikke tømmes i browseren. Varerne i kurven er allerede bestilt; undlad at bestille dem igen." IsError="true" />
+    }
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Ordredetaljer</h5>
+
+                    <p>
+                        <strong>Ordrenummer:</strong><br />
+                        @Order.OrderId
+                    </p>
+
+                    <p>
+                        <strong>Ordredato:</strong><br />
+                        @Order.CreatedAt.ToLocalTime().ToString("dd-MM-yyyy HH:mm")
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong><br />
+                        <OrderStatusBadge Status="@Order.Status" />
+                    </p>
+
+                    <p class="mb-0">
+                        <strong>Betalingsstatus:</strong><br />
+                        @Order.PaymentStatus
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Varer</h5>
+
+                    @foreach (var item in Order.Items)
+                    {
+                        <div class="d-flex gap-3 border-bottom py-3">
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl"
+                                     alt="@item.Name"
+                                     style="width: 80px; height: 80px; object-fit: cover;" />
+                            }
+
+                            <div class="flex-grow-1">
+                                <strong>@item.Name</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Size))
+                                {
+                                    <div class="small text-muted">
+                                        Størrelse: @item.Size
+                                    </div>
+                                }
+
+                                <div class="small text-muted">
+                                    @item.Quantity × @item.UnitPrice.ToString("C")
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong>@item.LineTotal.ToString("C")</strong>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <strong>Total</strong>
+                        <strong>@Order.Total.ToString("C")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Levering</h5>
+
+                    <p class="mb-0">
+                        @Order.FirstName @Order.LastName<br />
+                        @Order.Address<br />
+                        @Order.PostalCode @Order.City
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Kontakt og betaling</h5>
+
+                    <p>
+                        <strong>Email:</strong><br />
+                        @Order.Email
+                    </p>
+
+                    <p>
+                        <strong>Telefon:</strong><br />
+                        @Order.Phone
+                    </p>
+
+                    <p class="mb-0">
+                        <strong>Betalingsmetode:</strong><br />
+                        @Order.PaymentMethod
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="/products" class="btn btn-primary">
+            Fortsæt med at handle
+        </a>
+    </div>
+}

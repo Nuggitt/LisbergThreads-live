@@ -1,0 +1,86 @@
+.edit-product {
+    width: 100%;
+    max-width: 520px;
+    margin-inline: auto;
+    padding-block: 1rem 2rem;
+    color: #293b31;
+}
+
+.edit-header {
+    margin-bottom: 1.5rem;
+}
+
+.edit-eyebrow {
+    color: #627568;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.edit-header h1 {
+    margin: .5rem 0;
+    font-size: 2rem;
+    font-weight: 650;
+    letter-spacing: -.04em;
+}
+
+.edit-header p, .section-note {
+    color: #627568;
+    font-size: .9rem;
+}
+
+.edit-product ::deep .product-editor-form {
+    padding: clamp(1rem, 4vw, 2rem);
+    background: var(--lt-surface);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgb(41 59 49 / 6%);
+}
+
+.edit-section h2 {
+    margin-bottom: 1.25rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.image-section {
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--lt-border);
+}
+
+.image-section h2 {
+    margin-bottom: .5rem;
+}
+
+.edit-product ::deep .form-control {
+    border-color: var(--lt-border);
+    background-color: #fff;
+}
+
+.edit-product ::deep .form-control:focus {
+    border-color: #708b76;
+    box-shadow: 0 0 0 3px rgb(80 112 88 / 14%);
+}
+
+.edit-product ::deep .form-label {
+    font-size: .85rem;
+}
+
+.edit-product ::deep .btn-primary,
+.edit-product ::deep .btn-primary:hover {
+    background: #198754;
+    border-color: #198754;
+}
+
+.edit-product ::deep .product-editor-row {
+    gap: .75rem;
+}
+
+.edit-product ::deep .btn { min-height: 44px; }
+
+@media (min-width: 400px) {
+    .edit-product ::deep .product-editor-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
