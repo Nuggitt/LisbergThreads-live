@@ -1,0 +1,52 @@
+name: Build and deploy to Simply
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simply-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SIMPLY_PUBLISH_ROOT: ${{ github.workspace }}/LisbergThreads.Api/artifacts/simply-ci
+      SIMPLY_RUNTIME: ${{ vars.SIMPLY_RUNTIME || 'win-x86' }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build solution
+        run: dotnet build LisbergThreads.Api/LisbergThreads.sln --configuration Release
+
+      - name: Publish API and client
+        run: bash LisbergThreads.Api/scripts/publish-simply.sh "$SIMPLY_RUNTIME"
+
+      - name: Validate publication
+        run: python3 LisbergThreads.Api/scripts/deploy-simply.py "$SIMPLY_PUBLISH_ROOT/site" --check-only
+
+      - name: Deploy to lisbergthreads.dk
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          SIMPLY_FTP_HOST: ${{ secrets.SIMPLY_FTP_HOST || 'ftp.simply.com' }}
+          SIMPLY_FTP_USERNAME: ${{ secrets.SIMPLY_FTP_USERNAME }}
+          SIMPLY_FTP_PASSWORD: ${{ secrets.SIMPLY_FTP_PASSWORD }}
+          SIMPLY_REMOTE_DIR: ${{ vars.SIMPLY_REMOTE_DIR || '/public_html' }}
+          SIMPLY_HEALTH_URL: https://lisbergthreads.dk/health
+        run: python3 LisbergThreads.Api/scripts/deploy-simply.py "$SIMPLY_PUBLISH_ROOT/site"

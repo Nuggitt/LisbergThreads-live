@@ -1,6 +1,6 @@
 # Idriftsættelse på Simply
 
-Mål: `https://lisbergthreads.dk`, hvor ASP.NET Core serverer både REST API og Blazor-klienten fra samme adresse. MobilePay er deaktiveret, indtil erhvervsaftale og API-adgang er klar. Der er ikke foretaget upload, databaseopdatering eller rigtige betalinger under klargøringen.
+Mål: `https://lisbergthreads.dk`, hvor ASP.NET Core serverer både REST API og Blazor-klienten fra samme adresse. MobilePay holdes deaktiveret, indtil erhvervsaftale og API-adgang er klar. Betalinger og browserforløb skal afprøves særskilt før åbning for rigtige køb.
 
 ## Før offentlig drift
 
@@ -27,6 +27,7 @@ Kopiér `appsettings.Local.example.json` til `appsettings.Local.json` i API'ets 
 | `PasswordReset:ClientBaseUrl` | `https://lisbergthreads.dk`. |
 | `MobilePay:ClientBaseUrl` | `https://lisbergthreads.dk`, eller det relevante HTTPS-testdomæne. |
 | `Bootstrap:AdminUserIds` | Som udgangspunkt tom. Eksisterende Admin-roller bevares i databasen. |
+| `Checkout:AllowTestOrders` | `false` ved offentlig drift. Uden aktiveret MobilePay kan kunder derefter ikke gennemføre køb. |
 
 En JWT-nøgle kan genereres lokalt med `openssl rand -base64 64`. Indsæt resultatet direkte i den private serverkonfiguration; undlad at gemme det i shellhistorik, Git eller dokumentation. Miljøvariabler bruger dobbelte understregninger, fx `Jwt__Key` og `Smtp__Password`.
 
@@ -49,7 +50,7 @@ dotnet ef migrations script --idempotent --project LisbergThreads.Api/LisbergThr
 
 Gennemgå scriptet og anvend det på den korrekte SQL Server-database før det nye API startes. Flyt eventuelle eksisterende data med en separat databasebackup; migrationer kopierer ikke kunder, produkter eller ordrer. Programmet anvender ikke migrationer automatisk ved opstart.
 
-Billeder gemmes som standard i `App_Data/uploads/products`, og nøgler til nulstilling af adgangskoder i `App_Data/keys`. Giv applikationen skriveadgang. Kopiér de eksisterende produktbilleder til billedmappen med uændrede filnavne. URL'erne forbliver `/uploads/products/...`. Brug `Uploads:ProductsPath` og `DataProtection:KeysPath`, hvis mapperne skal ligge et andet sted. Bevar mapperne og den private konfiguration ved nye publiceringer, og tag backup af dem. På Windows krypteres Data Protection-nøgler med DPAPI for applikationens Windows-identitet.
+Billeder gemmes som standard i `App_Data/uploads/products`, og nøgler til nulstilling af adgangskoder i `App_Data/keys`. Giv applikationen skriveadgang. Hvis eksisterende produkter senere flyttes, kopieres deres billeder med uændrede filnavne. Ved en tom produktdatabase uploades nye billeder gennem administrationen. URL'erne er `/uploads/products/...`. Brug `Uploads:ProductsPath` og `DataProtection:KeysPath`, hvis mapperne skal ligge et andet sted. Bevar mapperne og den private konfiguration ved nye publiceringer, og tag backup af dem. På Windows krypteres Data Protection-nøgler med DPAPI for applikationens Windows-identitet.
 
 ## Testcheckout uden MobilePay
 
@@ -61,9 +62,13 @@ Testcheckout kan slås fra ved at sætte `Checkout:AllowTestOrders` til `false` 
 
 Genstart API'et efter ændring af indstillingerne. Test manuelt både som gæst og som indlogget bruger: gennemfør én ordre, kontrollér `Placed`/`Test`, kurven og ét lagertræk. Genindlæs ordrebekræftelsen: ingen ekstra ordre eller lagerændring. Afprøv også manglende lager og ugyldige antal; de skal afvises uden en gennemført ordre. Som Admin skal du kunne følge ordreflowet til `Completed`, mens betalingsstatus forbliver `Test`.
 
+Før offentlig drift sættes `Checkout:AllowTestOrders` til `false` i den private serverkonfiguration. Det tilsidesætter demonstrationsindstillingen ovenfor. MobilePay kan fortsat være deaktiveret, mens aftalen er under oprettelse; produktkatalog og login kan bruges, men checkout kan ikke gennemføres.
+
 ## MobilePay-aftale og aktivering
 
 Opret en erhvervsaftale med Vipps MobilePay til ePayment/onlinebetaling. En privat MobilePay-konto eller et telefonnummer er ikke tilstrækkeligt. Hent nøglerne fra erhvervsportalen og gennemfør [ePayment-checklisten](https://developer.vippsmobilepay.com/docs/APIs/epayment-api/checklist/).
+
+Bestil produktet **Payment integration (ePayment)** til den danske virksomhed. Den eksisterende kode anvender ePayment API'et direkte; følg [Vipps MobilePays opstartsvejledning](https://developer.vippsmobilepay.com/docs/getting-started/) for aftale og testadgang. Hold test- og produktionsnøgler adskilt. Afprøv godkendelse, afbrydelse, manglende lager og hævning i testmiljøet, før produktionsnøgler indsættes. API-nøgler udfyldes direkte i den private serverkonfiguration og indgår ikke i GitHub-workflowet.
 
 Udfyld følgende privat:
 
@@ -89,6 +94,39 @@ bash LisbergThreads.Api/scripts/publish-simply.sh
 ```
 
 Upload indholdet af den viste `site`-mappe til webhotellets applikationsrod. Publiceringen indeholder både API og klient samt en Windows-runtime. Den indeholder ikke private appsettings, User Secrets eller udviklingsopsætningen. Tilføj din private `appsettings.Local.json` direkte på serveren, og behold den ved efterfølgende uploads. Kontrollér den genererede `web.config`, som skal starte `LisbergThreads.Api.exe` med OutOfProcess. Stop appen under udskiftning af filer, og genstart efter upload.
+
+### Automatisk publicering fra GitHub
+
+Workflowet `.github/workflows/deploy-simply.yml` bygger løsningen og publiceringspakken ved pull requests til `main`. Et push eller en merge til `main` bygger og uploader også til Simply. Det kan desuden startes manuelt fra Actions med `main` valgt. Uploads kører én ad gangen og afbrydes ikke af et nyt push.
+
+Upload bruger [Simplys explicit FTPS på port 21](https://www.simply.com/en/support/faq/ftp/76-setting-up-ftp-and-ftps/) og kontrollerer serverens TLS-certifikat. Uploadscriptet benytter kun Pythons standardbibliotek. Det overskriver applikationens publicerede filer, bevarer eksisterende `App_Data` og private appsettings og sletter ingen øvrige serverfiler. Ældre publiceringsfiler fjernes ikke automatisk; kontrollér pladsforbruget ved større eller mange publiceringer.
+
+I repositoryets **Settings → Secrets and variables → Actions → Secrets** oprettes:
+
+| Secret | Indhold |
+|---|---|
+| `SIMPLY_FTP_HOST` | `ftp.simply.com`, eller FTP-serveren oplyst af Simply. |
+| `SIMPLY_FTP_USERNAME` | Webhotellets FTP-brugernavn. |
+| `SIMPLY_FTP_PASSWORD` | Webhotellets private produktadgangskode. |
+
+Valgfrie **Variables**: `SIMPLY_RUNTIME` (`win-x86` som standard) og `SIMPLY_REMOTE_DIR` (`/public_html` som standard). Brug kun `win-x64`, hvis webhotellet er konfigureret til det. Der skal ikke oprettes GitHub-secrets for databaseforbindelsen, login-nøglen eller MobilePay: serveren beholder sin private `appsettings.Local.json`.
+
+Før første automatiske upload skal webhotellet bruge Windows/ASP.NET, HTTPS skal være aktivt, og den udfyldte private `appsettings.Local.json` skal ligge i `/public_html` ved siden af exe-filen. En tom login-nøgle forhindrer opstart. SMTP skal konfigureres før kontaktformular og nulstilling af adgangskode kan bruges. Bevar `Checkout:AllowTestOrders=false`, indtil den rigtige betaling er klar.
+
+En første upload kan også foretages lokalt med FTPS-oplysninger i miljøvariabler og den private konfiguration valgt eksplicit:
+
+```sh
+python3 LisbergThreads.Api/scripts/deploy-simply.py /sti/til/site \
+  --settings LisbergThreads.Api/artifacts/simply-config/appsettings.Local.json
+```
+
+`--settings` er kun til første opsætning eller en bevidst konfigurationsændring. GitHub-workflowet anvender ikke denne mulighed. Scriptet kontrollerer først, at pakken er komplet og uden private filer. `--check-only` udfører alene denne lokale pakkekontrol.
+
+Under upload viser IIS en kort vedligeholdelsesside via `app_offline.htm`, så DLL- og exe-filer kan udskiftes. Ved afbrudt upload bliver siden liggende; en ny kørsel færdiggør uploaden og starter appen igen. Efter upload skal `https://lisbergthreads.dk/health` svare `Healthy`, før deployment markeres som bestået. En fejl her kræver kontrol af appens log hos Simply; uploaden rulles ikke automatisk tilbage.
+
+Workflowet anvender ingen databasemigrationer og flytter ingen produkter, ordrer eller kunder. Ved fremtidige skemaændringer gennemgås og anvendes migrationsscriptet på databasen, før den tilhørende appversion publiceres.
+
+Kontrollér manuelt ved den første publicering: begge administratorer kan logge ind, produkt- og ordrelisten er tom, et uploadet billede vises efter genstart, og checkout afviser køb, når både MobilePay og testordrer er slået fra. Ved næste ændring til `main` kontrolleres, at Actions bliver grøn, siden er opdateret, og eksisterende billeder samt login fortsat virker.
 
 ## Manuel verifikation før åbning
 

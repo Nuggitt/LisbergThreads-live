@@ -9,7 +9,7 @@ case "$publish_rid" in
   *) echo 'Brug win-x64 eller win-x86, svarende til Simply-webhotellets app-pool.' >&2; exit 1 ;;
 esac
 publish_stamp="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-publish_root="$api_root/artifacts/simply-$publish_stamp"
+publish_root="${SIMPLY_PUBLISH_ROOT:-$api_root/artifacts/simply-$publish_stamp}"
 
 dotnet publish "$api_root/LisbergThreads.Api.csproj" -c Release -r "$publish_rid" --self-contained true \
   -p:AspNetCoreHostingModel=OutOfProcess -o "$publish_root/site"
