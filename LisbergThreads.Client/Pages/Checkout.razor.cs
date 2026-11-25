@@ -28,6 +28,7 @@ public partial class Checkout : ComponentBase
     [Inject] public MobilePayCheckoutService MobilePayCheckout { get; set; } = null!;
 
     protected CartDto? Cart { get; set; }
+    protected CheckoutPaymentOptionsDto? PaymentOptions { get; set; }
 
     protected CheckoutFormModel Model { get; set; } = new();
 
@@ -40,8 +41,12 @@ public partial class Checkout : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
+        IsLoading = true;
         try
         {
+            PaymentOptions = await Http.GetFromJsonAsync<CheckoutPaymentOptionsDto>("api/cart/checkout-options")
+                ?? throw new System.Text.Json.JsonException();
+            Model.PaymentMethod = PaymentOptions.IsTestMode ? "Test" : "MobilePay";
             var pending = await MobilePayCheckout.GetAsync();
             if (pending is not null)
             {
@@ -49,9 +54,9 @@ public partial class Checkout : ComponentBase
                 return;
             }
         }
-        catch (Exception ex) when (ex is Microsoft.JSInterop.JSException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or Microsoft.JSInterop.JSException or System.Text.Json.JsonException)
         {
-            ErrorMessage = "Browserens betalingsoplysninger kunne ikke læses. Kontrollér en eventuel tidligere betaling, før du bestiller igen.";
+            ErrorMessage = "Checkout kunne ikke klargøres. Kontrollér forbindelsen og en eventuel tidligere bestilling, før du bestiller igen.";
             CheckoutUncertain = true;
         }
         await LoadCartAsync();
@@ -92,7 +97,7 @@ public partial class Checkout : ComponentBase
     {
         if (Cart is null ||
             Cart.Items.Count == 0 ||
-            IsSaving || CheckoutUncertain)
+            IsSaving || CheckoutUncertain || PaymentOptions?.IsAvailable != true)
         {
             return;
         }
@@ -157,7 +162,7 @@ public partial class Checkout : ComponentBase
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException or Microsoft.JSInterop.JSException)
         {
             CheckoutUncertain = true;
-            ErrorMessage = "Betalingen kunne ikke startes sikkert. Genåbn checkout for at se det gemte betalingsforsøg; undlad at oprette en ny bestilling.";
+            ErrorMessage = "Bestillingen kunne ikke bekræftes. Genåbn checkout for at se det gemte forsøg; undlad at oprette en ny bestilling.";
         }
         finally
         {

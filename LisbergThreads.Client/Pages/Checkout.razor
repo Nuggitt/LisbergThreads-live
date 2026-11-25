@@ -6,7 +6,7 @@
 <header class="overview-header">
     <span class="overview-eyebrow">Lisberg Threads · Din bestilling</span>
     <h1>Checkout</h1>
-    <p>Udfyld dine oplysninger, og fortsæt til betaling med MobilePay.</p>
+    <p>Udfyld dine oplysninger, og kontrollér din ordre før bestilling.</p>
 </header>
 
 <FeedbackNotice Message="@ErrorMessage" IsError="true" />
@@ -90,24 +90,32 @@ else
 
                 <h2 class="checkout-section-heading">Betaling</h2>
 
-                <div class="form-check mb-3">
-                    <InputRadioGroup @bind-Value="Model.PaymentMethod">
-                        <div class="form-check">
-                            <InputRadio id="checkout-mobilepay" class="form-check-input"
-                                        Value="@("MobilePay")" />
-                            <label class="form-check-label" for="checkout-mobilepay">
-                                MobilePay
-                            </label>
-                        </div>
-                    </InputRadioGroup>
-                </div>
-
-                <p class="form-text">Beløbet reserveres ved godkendelse i MobilePay og hæves, når ordren afsendes. Varerne reserveres ikke, mens betalingen afventer godkendelse.</p>
+                @if (PaymentOptions?.IsTestMode == true)
+                {
+                    <p><strong>Testordre – ingen betaling</strong></p>
+                    <p class="form-text">Ordren gemmes, og varerne trækkes fra lageret. Der reserveres eller hæves ingen penge.</p>
+                }
+                else
+                {
+                    <div class="form-check mb-3">
+                        <InputRadioGroup @bind-Value="Model.PaymentMethod">
+                            <div class="form-check">
+                                <InputRadio id="checkout-mobilepay" class="form-check-input" Value="@("MobilePay")" />
+                                <label class="form-check-label" for="checkout-mobilepay">MobilePay</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                    <p class="form-text">Beløbet reserveres ved godkendelse i MobilePay og hæves, når ordren afsendes. Varerne reserveres ikke, mens betalingen afventer godkendelse.</p>
+                }
+                @if (PaymentOptions is { IsAvailable: false })
+                {
+                    <FeedbackNotice Message="Checkout er ikke aktiveret. Kontakt Lisberg Threads, hvis du vil bestille." IsError="true" />
+                }
                 <div class="checkout-actions">
                     <button type="submit"
                             class="btn btn-success"
-                            disabled="@(IsSaving || CheckoutUncertain)">
-                        @(IsSaving ? "Åbner MobilePay…" : "Fortsæt til MobilePay")
+                            disabled="@(IsSaving || CheckoutUncertain || PaymentOptions?.IsAvailable != true)">
+                        @(IsSaving ? "Behandler…" : PaymentOptions?.IsTestMode == true ? "Gennemfør testordre" : "Fortsæt til MobilePay")
                     </button>
 
                     <button type="button"

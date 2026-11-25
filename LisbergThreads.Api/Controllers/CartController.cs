@@ -259,6 +259,12 @@ namespace LisbergThreads.Api.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet("checkout-options")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public CheckoutPaymentOptionsDto GetCheckoutOptions([FromServices] MobilePayPaymentService payments) =>
+            payments.GetOptions();
+
+        [AllowAnonymous]
         [HttpPost("checkout")]
         [EnableRateLimiting("checkout")]
         [RequestSizeLimit(64 * 1024)]

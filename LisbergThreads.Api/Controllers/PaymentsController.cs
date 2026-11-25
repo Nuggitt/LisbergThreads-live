@@ -24,6 +24,7 @@ public sealed class PaymentsController(MobilePayPaymentService payments) : Contr
             var status = await payments.GetStatusAsync(id, token, cancellationToken);
             return status is null ? NotFound() : Ok(status);
         }
+        catch (CheckoutRejectedException ex) { return StatusCode(ex.StatusCode, ex.Message); }
         catch (Exception ex) when (ex is MobilePayException or HttpRequestException or TaskCanceledException
                                    or System.Text.Json.JsonException or DbUpdateConcurrencyException)
         {

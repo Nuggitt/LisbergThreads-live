@@ -81,6 +81,8 @@ Rollerne oprettes ved API-opstart. Administratoradgang tildeles særskilt via pr
 
 ## Betaling og publicering
 
+Projektet bruger som standard **testcheckout uden betaling**, både lokalt og ved publicering. Testordrer får betalingsstatus `Test` og følger det almindelige ordre- og lagerflow. Der kræves ingen MobilePay-nøgler til testcheckout.
+
 MobilePay kræver en erhvervsaftale, API-nøgler og afprøvning i testmiljøet før aktivering. Betaling, mail og hosting er endnu ikke verificeret i produktion.
 
 Projektet er forberedt til Windows/ASP.NET-hosting hos Simply. Et push til GitHub opdaterer repositoryet; upload til webhotellet udføres separat.

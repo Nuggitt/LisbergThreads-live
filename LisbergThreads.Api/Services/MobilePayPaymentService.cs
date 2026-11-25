@@ -14,12 +14,18 @@ public sealed class CheckoutRejectedException(int statusCode, string message) : 
     public int StatusCode { get; } = statusCode;
 }
 
-public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient client)
+public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient client, IConfiguration configuration)
 {
+    private bool IsTestMode => configuration.GetValue<bool>("Checkout:AllowTestOrders")
+        && !configuration.GetValue<bool>("MobilePay:Enabled");
+
+    public CheckoutPaymentOptionsDto GetOptions() => new(IsTestMode, IsTestMode || client.IsConfigured);
+
     public async Task<MobilePayStartDto> StartAsync(CheckoutRequestDto request, Guid? userId,
         CancellationToken cancellationToken)
     {
-        if (!client.IsConfigured)
+        var isTestOrder = IsTestMode;
+        if (!isTestOrder && !client.IsConfigured)
             throw new CheckoutRejectedException(503, "MobilePay er endnu ikke aktiveret. Kontakt Lisberg Threads.");
         if (request.PaymentId == Guid.Empty || request.PaymentToken == Guid.Empty)
             throw new CheckoutRejectedException(400, "Betalingsforsøget mangler et id.");
@@ -32,8 +38,8 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
             return await StartResultAsync(existing, cancellationToken);
         }
 
-        if (request.PaymentMethod != "MobilePay")
-            throw new CheckoutRejectedException(400, "Vælg MobilePay som betalingsmåde.");
+        if (request.PaymentMethod != (isTestOrder ? "Test" : "MobilePay"))
+            throw new CheckoutRejectedException(400, "Betalingsmåden er ændret. Genindlæs checkout.");
         if (request.Items is not { Count: > 0 and <= 100 } || request.Items.Any(i => i is null || i.Quantity <= 0))
             throw new CheckoutRejectedException(400, "Kurven skal indeholde gyldige varer og positive antal.");
         var fields = new[] { request.FirstName, request.LastName, request.Email, request.Phone,
@@ -80,7 +86,8 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
             Id = cart?.Id ?? Guid.NewGuid(), UserId = userId,
             FirstName = request.FirstName.Trim(), LastName = request.LastName.Trim(), Email = request.Email.Trim(),
             Phone = request.Phone.Trim(), Address = request.Address.Trim(), PostalCode = request.PostalCode.Trim(),
-            City = request.City.Trim(), PaymentMethod = "MobilePay", PaymentStatus = "Reserved",
+            City = request.City.Trim(), PaymentMethod = isTestOrder ? "Test" : "MobilePay",
+            PaymentStatus = isTestOrder ? "Test" : "Reserved",
             Status = OrderStatuses.Placed, CreatedAt = DateTime.UtcNow
         };
         foreach (var product in products)
@@ -97,7 +104,8 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
         {
             Id = request.PaymentId, AccessToken = request.PaymentToken, UserId = userId, CartId = cart?.Id,
             Total = snapshot.Total, SnapshotJson = JsonSerializer.Serialize(snapshot),
-            NextCheckAt = DateTime.UtcNow.AddSeconds(30)
+            State = isTestOrder ? "TestPending" : "Creating",
+            NextCheckAt = isTestOrder ? DateTime.UtcNow : DateTime.UtcNow.AddSeconds(30)
         };
         db.MobilePayPayments.Add(payment);
         try { await db.SaveChangesAsync(cancellationToken); }
@@ -111,7 +119,13 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
 
     private async Task<MobilePayStartDto> StartResultAsync(MobilePayPayment payment, CancellationToken cancellationToken)
     {
-        if (payment.IsActive && payment.State == "Creating")
+        if (payment.IsActive && payment.State == "TestPending")
+        {
+            if (!IsTestMode)
+                throw new CheckoutRejectedException(503, "Testcheckout er ikke aktiveret på serveren.");
+            await CompleteOrderAsync(payment, cancellationToken, isTestOrder: true);
+        }
+        else if (payment.IsActive && payment.State == "Creating")
         {
             payment.RedirectUrl = await client.CreateAsync(payment, cancellationToken);
             payment.State = "Waiting";
@@ -137,6 +151,12 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
     public async Task ReconcileAsync(MobilePayPayment payment, CancellationToken cancellationToken)
     {
         if (!payment.IsActive || payment.NextCheckAt > DateTime.UtcNow) return;
+
+        if (payment.State == "TestPending")
+        {
+            await StartResultAsync(payment, cancellationToken);
+            return;
+        }
 
         // Claim one polling interval using rowversion, including across multiple application instances.
         payment.NextCheckAt = DateTime.UtcNow.AddSeconds(10);
@@ -175,7 +195,8 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
         if (payment.State == "CancelPending") await CancelRejectedAsync(payment, remote, cancellationToken);
     }
 
-    private async Task CompleteOrderAsync(MobilePayPayment payment, CancellationToken cancellationToken)
+    private async Task CompleteOrderAsync(MobilePayPayment payment, CancellationToken cancellationToken,
+        bool isTestOrder = false)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         // A database lock serializes completion with other requests and application instances.
@@ -193,7 +214,8 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
         if (products.Count != ids.Count || snapshot.OrderItems.Any(i =>
                 products.All(p => p.Id != i.ProductId || !p.IsActive || p.StockQuantity < i.Quantity)))
         {
-            payment.State = "CancelPending";
+            payment.State = isTestOrder ? "StockRejected" : "CancelPending";
+            if (isTestOrder) payment.IsActive = false;
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return;

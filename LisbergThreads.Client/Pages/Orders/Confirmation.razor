@@ -1,4 +1,4 @@
-﻿@page "/orders/confirmation/{OrderId:guid}"
+@page "/orders/confirmation/{OrderId:guid}"
 
 <PageTitle>Ordrebekræftelse</PageTitle>
 
@@ -18,6 +18,10 @@ else if (!string.IsNullOrWhiteSpace(ErrorMessage))
 else if (Order is not null)
 {
     <FeedbackNotice Message="@($"Tak for din ordre, {Order.FirstName}! Din ordre er modtaget.")" />
+    @if (Order.PaymentStatus == "Test")
+    {
+        <FeedbackNotice Message="Dette er en testordre. Der er ikke reserveret eller hævet penge." />
+    }
     @if (CartCleanupFailed)
     {
         <FeedbackNotice Message="Ordren er oprettet, men gæstekurven kunne ikke tømmes i browseren. Varerne i kurven er allerede bestilt; undlad at bestille dem igen." IsError="true" />

@@ -24,7 +24,7 @@ public partial class Payment : ComponentBase, IDisposable
 
     protected string ResultMessage => Status?.State switch
     {
-        "StockRejected" => "En vare blev udsolgt, før betalingen blev færdig. MobilePay-reservationen er annulleret. Kontrollér kurven før et nyt forsøg.",
+        "StockRejected" => "En vare er ikke længere tilgængelig i det ønskede antal. Ordren er ikke oprettet. Kontrollér kurven før et nyt forsøg.",
         "EXPIRED" => "Betalingstiden udløb. Der er ikke oprettet en ordre. Varerne er bevaret i kurven.",
         _ => "Betalingen er afbrudt eller annulleret. Der er ikke oprettet en ordre. Varerne er bevaret i kurven."
     };
@@ -56,7 +56,7 @@ public partial class Payment : ComponentBase, IDisposable
                 var pending = await MobilePayCheckout.GetAsync();
                 CanRetryStart = pending?.Request.PaymentId == PaymentId && pending.Request.PaymentToken == Token;
                 ErrorMessage = CanRetryStart
-                    ? "Betalingen er endnu ikke registreret. Du kan genoptage det samme forsøg uden at oprette en ekstra ordre."
+                    ? "Bestillingsforsøget er endnu ikke registreret. Du kan genoptage det samme forsøg uden at oprette en ekstra ordre."
                     : "Betalingen blev ikke fundet, eller du har ikke adgang til den.";
                 return;
             }

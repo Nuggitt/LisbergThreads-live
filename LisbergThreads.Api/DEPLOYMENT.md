@@ -51,6 +51,16 @@ Gennemgå scriptet og anvend det på den korrekte SQL Server-database før det n
 
 Billeder gemmes som standard i `App_Data/uploads/products`, og nøgler til nulstilling af adgangskoder i `App_Data/keys`. Giv applikationen skriveadgang. Kopiér de eksisterende produktbilleder til billedmappen med uændrede filnavne. URL'erne forbliver `/uploads/products/...`. Brug `Uploads:ProductsPath` og `DataProtection:KeysPath`, hvis mapperne skal ligge et andet sted. Bevar mapperne og den private konfiguration ved nye publiceringer, og tag backup af dem. På Windows krypteres Data Protection-nøgler med DPAPI for applikationens Windows-identitet.
 
+## Testcheckout uden MobilePay
+
+I både Development og Production er `Checkout:AllowTestOrders` sat til `true` og `MobilePay:Enabled` til `false`, så projektet kan bruges som demonstration uden en MobilePay-aftale. Checkout viser **Gennemfør testordre** og opretter ordren uden at kontakte MobilePay. Ordren får betalingsmåde og betalingsstatus `Test`, og der reserveres eller hæves ingen penge.
+
+Testordrer validerer kontaktoplysninger, aktive produkter, samlede antal og databasepriser på serveren. Ordre og lagertræk gemmes i samme transaktion. Gentagne forespørgsler med samme id opretter ikke ekstra ordrer. Testordrer følger det almindelige ordreflow, men afsendelse udløser ingen MobilePay-hævning.
+
+Testcheckout kan slås fra ved at sætte `Checkout:AllowTestOrders` til `false` i den private serverkonfiguration. Hvis MobilePay aktiveres, anvendes den rigtige betalingsintegration, også hvis testflaget stadig er sat. Et køb uden betaling kan derfor ikke vælges fra browseren, når serveren bruger den rigtige MobilePay-integration.
+
+Genstart API'et efter ændring af indstillingerne. Test manuelt både som gæst og som indlogget bruger: gennemfør én ordre, kontrollér `Placed`/`Test`, kurven og ét lagertræk. Genindlæs ordrebekræftelsen: ingen ekstra ordre eller lagerændring. Afprøv også manglende lager og ugyldige antal; de skal afvises uden en gennemført ordre. Som Admin skal du kunne følge ordreflowet til `Completed`, mens betalingsstatus forbliver `Test`.
+
 ## MobilePay-aftale og aktivering
 
 Opret en erhvervsaftale med Vipps MobilePay til ePayment/onlinebetaling. En privat MobilePay-konto eller et telefonnummer er ikke tilstrækkeligt. Hent nøglerne fra erhvervsportalen og gennemfør [ePayment-checklisten](https://developer.vippsmobilepay.com/docs/APIs/epayment-api/checklist/).
