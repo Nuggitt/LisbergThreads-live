@@ -139,3 +139,23 @@ Build og pakkekontrol erstatter ikke disse manuelle test. Brug MobilePays testmi
 5. Lad to kunder betale for sidste vare. Kun én ordre må gennemføres. Den anden reservation skal annulleres, og lageret må aldrig blive negativt. Prøv også gentagne produktlinjer, antal 0/negative antal og deaktiverede produkter via API'et.
 6. Skift som Admin `Placed -> Confirmed -> Shipped -> Completed`. Ved `Shipped` skal erhvervsportalen vise én hævning, og ordren skal vise `Paid`. Gentagne klik og parallelle requests må ikke give dobbelt hævning eller føre status baglæns. En kunde må ikke ændre ordrestatus.
 7. Test login, nulstilling af adgangskode og billed-upload efter en genstart. Forsøg at hente `/appsettings.Local.json` og `/App_Data/keys/...`: der må ikke udleveres private filer. Kontrollér klientens downloadede filer og serverloggen for hemmeligheder.
+
+## Fælles repository og udviklingsmiljø på NAS
+
+Brug `Nuggitt/LisbergThreads-live` som fælles repository. Den nye Git-historik er udgangspunkt for begge miljøer. Det tidligere `Nuggitt/LisbergThreads` må ikke merges eller bruges som kilde til gamle branches/tags i det nye repository, da den tidligere historik indeholder eksponeret konfiguration. Eksponerede nøgler skal være udskiftet i alle miljøer, der brugte dem; en frisk klon erstatter ikke dette.
+
+| Branch | Anvendelse | Deployment |
+|---|---|---|
+| `feature/...` | Én samlet feature eller rettelse | Pull request til `develop`; GitHub bygger løsningen og publiceringspakken. |
+| `develop` | Integration og manuel afprøvning | NAS-deployment til `https://lisbergthreads.nuggit.dk`, når NAS-konfigurationen er omlagt. |
+| `main` | Godkendte ændringer | Eksisterende GitHub-workflow uploader til Simply på `https://lisbergthreads.dk`. |
+
+Udvikl på en feature-branch, merge til `develop`, og afprøv resultatet på NAS'en. Når ændringerne er klar, oprettes en pull request fra `develop` til `main`. En akut rettelse på `main` skal også føres tilbage til `develop`. Push og pull requests til begge branches køres gennem GitHub-buildet; kun en kørsel på `main`, der ikke er en pull request, kan udføre Simply-upload. NAS'en har sin egen Linux/container-publicering og skal ikke bruge Simplys Windows-pakke.
+
+NAS'en har ifølge den eksisterende driftsprocedure en kontrol hvert femte minut, container-build, health-kontrol, kontrol af hjemmesiden, rollback og Gotify-beskeder. Før omlægningen gennemgås den faktiske NAS-konfiguration og deploymentkode. Brug en frisk klon af `https://github.com/Nuggitt/LisbergThreads-live.git` på `develop`, og tilpas den eksisterende automatik til denne kilde. Genbrug de eksisterende driftsscripts og Docker-/Compose-filer efter gennemgang; kopier ingen hemmeligheder til Git. Hold automatisk deployment tilbage under selve skiftet, og lad aldrig to deploymentforløb køre samtidig.
+
+Bevar NAS'ens database, uploadede billeder, private konfiguration, persistente nøgler og navngivne volumes/bind mounts. Bevar også Compose-projektnavnet, hvis det bruges til volumenavne. Kontrollér de faktiske billedstier, da billeder fra det gamle repository ikke indgår i den nye kildekopi. Dev og Simply skal fortsat have separate databaser, billeder og private indstillinger. Gamle commits fra NAS'ens tidligere repository er ikke nødvendigvis tilgængelige i den nye klon; migrationskontrol, gemt sidste succes og fejlmarkeringer skal håndtere det kontrolleret uden at sammenflette historikker eller omgå migrationsstoppet.
+
+Nye eller ændrede migrationer skal fortsat stoppe automatisk NAS-deployment. Følg den eksisterende procedure med databasebackup, gennemgang/anvendelse af migrationer og manuel deployment. Kontrollér databasen før den første opstart fra den nye kilde. Simply-workflowet anvender heller ikke migrationer automatisk; skemaændringer skal være anvendt før publicering dér.
+
+Afslut NAS-omlægningen med en manuel deployment af en konkret commit på `develop`. Kontrollér containernes health, hjemmesiden og API'et samt at eksisterende billeder og databaseindhold er bevaret. Registrér først den nye succesfulde commit efter kontrollen. Genoptag derefter femminutterskontrollen, og kontrollér dens repository, branch og næste kørsel. En fejlet commit skal fortsat kræve en ny commit eller den eksisterende manuelle genkørselsprocedure. Ændringen af NAS-konfigurationen foretages på NAS'en; oprettelse af `develop` i GitHub udfører ikke dette skift alene.
