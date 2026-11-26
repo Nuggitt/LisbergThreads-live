@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,4 +21,8 @@ public sealed record OrderDetailsDto(
     string Status,
     decimal Total,
     List<OrderDetailsItemDto> Items
-);
+)
+{
+    public OrderShippingDto? Shipping { get; init; }
+    public string? TrackingNumber { get; init; }
+}

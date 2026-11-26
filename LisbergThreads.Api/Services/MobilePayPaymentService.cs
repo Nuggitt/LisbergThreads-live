@@ -14,12 +14,13 @@ public sealed class CheckoutRejectedException(int statusCode, string message) : 
     public int StatusCode { get; } = statusCode;
 }
 
-public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient client, IConfiguration configuration)
+public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient client, IConfiguration configuration,
+    ShippingService shipping)
 {
     private bool IsTestMode => configuration.GetValue<bool>("Checkout:AllowTestOrders")
         && !configuration.GetValue<bool>("MobilePay:Enabled");
 
-    public CheckoutPaymentOptionsDto GetOptions() => new(IsTestMode, IsTestMode || client.IsConfigured);
+    public CheckoutPaymentOptionsDto GetOptions() => new(IsTestMode, (IsTestMode || client.IsConfigured) && shipping.IsAvailable);
 
     public async Task<MobilePayStartDto> StartAsync(CheckoutRequestDto request, Guid? userId,
         CancellationToken cancellationToken)
@@ -52,6 +53,9 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
             .ToDictionary(g => g.Key, g => g.Sum(i => (long)i.Quantity));
         if (quantities.Values.Any(q => q > int.MaxValue))
             throw new CheckoutRejectedException(400, "Det ønskede antal er for stort.");
+
+        var delivery = await shipping.ResolveAsync(request.Shipping, request.PostalCode, request.Address,
+            request.City, cancellationToken);
 
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         Order? cart = null;
@@ -90,13 +94,23 @@ public sealed class MobilePayPaymentService(AppDbContext db, MobilePayClient cli
             PaymentStatus = isTestOrder ? "Test" : "Reserved",
             Status = OrderStatuses.Placed, CreatedAt = DateTime.UtcNow
         };
+        snapshot.ShippingMethodId = delivery.MethodId;
+        snapshot.ShippingMethodName = delivery.MethodName;
+        snapshot.ShippingCarrier = delivery.Carrier;
+        snapshot.ShippingPrice = delivery.Price;
+        snapshot.ServicePointId = delivery.ServicePoint?.Id;
+        snapshot.ServicePointName = delivery.ServicePoint?.Name;
+        snapshot.ServicePointAddress = delivery.ServicePoint?.Address;
+        snapshot.ServicePointAddress2 = delivery.ServicePoint?.Address2;
+        snapshot.ServicePointPostalCode = delivery.ServicePoint?.PostalCode;
+        snapshot.ServicePointCity = delivery.ServicePoint?.City;
         foreach (var product in products)
             snapshot.OrderItems.Add(new OrderItem
             {
                 Id = Guid.NewGuid(), OrderId = snapshot.Id, ProductId = product.Id,
                 Quantity = (int)quantities[product.Id], UnitPrice = product.Price
             });
-        snapshot.Total = snapshot.OrderItems.Sum(i => i.Quantity * i.UnitPrice);
+        snapshot.Total = snapshot.OrderItems.Sum(i => i.Quantity * i.UnitPrice) + snapshot.ShippingPrice;
         if (snapshot.Total <= 0 || snapshot.Total > int.MaxValue / 100m || snapshot.Total * 100m != decimal.Truncate(snapshot.Total * 100m))
             throw new CheckoutRejectedException(400, "Ordrebeløbet kan ikke betales med MobilePay.");
 

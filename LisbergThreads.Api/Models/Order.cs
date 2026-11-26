@@ -22,6 +22,18 @@ namespace LisbergThreads.Api.Models
         public string PostalCode { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
 
+        public string? ShippingMethodId { get; set; }
+        public string? ShippingMethodName { get; set; }
+        public string? ShippingCarrier { get; set; }
+        public decimal ShippingPrice { get; set; }
+        public string? ServicePointId { get; set; }
+        public string? ServicePointName { get; set; }
+        public string? ServicePointAddress { get; set; }
+        public string? ServicePointAddress2 { get; set; }
+        public string? ServicePointPostalCode { get; set; }
+        public string? ServicePointCity { get; set; }
+        public string? TrackingNumber { get; set; }
+
         public string PaymentMethod { get; set; } = string.Empty;
         public string PaymentStatus { get; set; } = "Pending";
 

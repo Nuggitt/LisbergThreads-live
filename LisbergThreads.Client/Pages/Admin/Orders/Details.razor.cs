@@ -27,10 +27,50 @@ public partial class Details : ComponentBase
 
     protected string? StatusErrorMessage { get; set; }
 
+    protected string TrackingNumber { get; set; } = string.Empty;
+    protected bool IsUpdatingTracking { get; set; }
+    protected string? TrackingMessage { get; set; }
+    protected string? TrackingErrorMessage { get; set; }
+
+    protected async Task UpdateTrackingAsync()
+    {
+        if (Order is null || IsUpdatingTracking) return;
+        var orderId = Order.OrderId;
+        TrackingMessage = null;
+        TrackingErrorMessage = null;
+        IsUpdatingTracking = true;
+        try
+        {
+            using var response = await Http.PutAsJsonAsync($"api/orders/{orderId}/tracking",
+                new UpdateOrderTrackingDto(TrackingNumber, Order.TrackingNumber));
+            if (OrderId != orderId) return;
+            if (!response.IsSuccessStatusCode)
+            {
+                TrackingErrorMessage = response.StatusCode switch
+                {
+                    HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "Du skal være logget ind som administrator for at gemme tracking.",
+                    HttpStatusCode.Conflict => "Ordren er ændret. Hent ordren igen, før du gemmer tracking.",
+                    HttpStatusCode.BadRequest => "Kontrollér trackingnummeret. Det må højst være 100 tegn.",
+                    _ => "Tracking kunne ikke gemmes. Hent ordren igen og kontrollér nummeret."
+                };
+                return;
+            }
+            await LoadOrderAsync();
+            if (OrderId == orderId) TrackingMessage = "Trackingnummeret blev gemt.";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
+        {
+            if (OrderId == orderId) TrackingErrorMessage = "Tracking kunne ikke bekræftes. Hent ordren igen og kontrollér nummeret.";
+        }
+        finally { IsUpdatingTracking = false; }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         StatusMessage = null;
         StatusErrorMessage = null;
+        TrackingMessage = null;
+        TrackingErrorMessage = null;
         await LoadOrderAsync();
     }
 
@@ -99,6 +139,7 @@ public partial class Details : ComponentBase
                 return;
             }
 
+            TrackingNumber = Order.TrackingNumber ?? string.Empty;
             SetAvailableStatuses();
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException or Microsoft.JSInterop.JSException)

@@ -1,0 +1,21 @@
+@if (Order.Shipping is { } shipping)
+{
+    <p class="mb-1"><strong>@shipping.MethodName</strong></p>
+    <p class="mb-2">Fragt: @shipping.Price.ToString("C")</p>
+}
+<p class="mb-1">@Order.FirstName @Order.LastName</p>
+@if (Order.Shipping?.ServicePoint is { } point)
+{
+    <p class="mb-1">@point.Name</p>
+    <p class="mb-1">@point.Address @point.Address2</p>
+    <p class="mb-1">@point.PostalCode @point.City</p>
+}
+else
+{
+    <p class="mb-1">@Order.Address</p>
+    <p class="mb-1">@Order.PostalCode @Order.City</p>
+}
+@if (!string.IsNullOrWhiteSpace(Order.TrackingNumber))
+{
+    <p class="mt-3 mb-0"><strong>Trackingnummer:</strong> @Order.TrackingNumber</p>
+}
