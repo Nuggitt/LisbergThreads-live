@@ -35,3 +35,12 @@
     .checkout-actions { flex-direction: column; }
     .checkout-actions ::deep .btn { width: 100%; }
 }
+
+.shipping-methods { margin-block: 1rem; }
+.shipping-methods legend { font-size: 1rem; font-weight: 600; }
+.shipping-choice { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; padding: .9rem; margin-bottom: .5rem; border: 1px solid var(--lt-border); border-radius: 8px; cursor: pointer; }
+.shipping-choice span { flex: 1 1 150px; }
+.shipping-choice strong { font-size: .85rem; }
+.shipping-choice:has(input:checked) { border-color: #198754; background: var(--lt-surface-strong); }
+.shipping-choice:has(input:disabled) { color: var(--bs-secondary-color); cursor: default; }
+.shipping-methods ::deep input[type=radio] { min-width: 20px; min-height: 20px; accent-color: #198754; }

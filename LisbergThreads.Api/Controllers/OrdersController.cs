@@ -104,7 +104,15 @@ public class OrdersController : ControllerBase
             order.Status,
             order.Total,
             items
-        );
+        )
+        {
+            Shipping = order.ShippingMethodId is null ? null : new OrderShippingDto(
+                order.ShippingMethodId, order.ShippingMethodName ?? "Levering", order.ShippingCarrier ?? "",
+                order.ShippingPrice, order.ServicePointId is null ? null : new ShippingServicePointDto(
+                    order.ServicePointId, order.ServicePointName ?? "", order.ServicePointAddress ?? "",
+                    order.ServicePointAddress2, order.ServicePointPostalCode ?? "", order.ServicePointCity ?? "")),
+            TrackingNumber = order.TrackingNumber
+        };
 
         return Ok(result);
     }
@@ -204,6 +212,24 @@ public class OrdersController : ControllerBase
             return Conflict("Ordren er ændret af en anden forespørgsel. Hent den igen før næste statusskift.");
         }
 
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{orderId:guid}/tracking")]
+    public async Task<IActionResult> UpdateTracking(Guid orderId, UpdateOrderTrackingDto request,
+        CancellationToken cancellationToken)
+    {
+        var number = string.IsNullOrWhiteSpace(request.TrackingNumber) ? null : request.TrackingNumber.Trim();
+        if (number?.Length > 100 || number?.Any(char.IsControl) == true)
+            return BadRequest("Trackingnummer må højst være 100 tegn og må ikke indeholde kontroltegn.");
+        var order = await _db.Orders.FirstOrDefaultAsync(order => order.Id == orderId, cancellationToken);
+        if (order is null || order.Status == "Pending") return NotFound("Ordren blev ikke fundet.");
+        if (order.TrackingNumber != request.ExpectedTrackingNumber)
+            return Conflict("Trackingnummeret er ændret. Hent ordren igen.");
+        order.TrackingNumber = number;
+        try { await _db.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException) { return Conflict("Ordren er ændret. Hent ordren igen."); }
         return NoContent();
     }
 

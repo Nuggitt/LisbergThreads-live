@@ -19,8 +19,8 @@ internal static class OrderFeedback
         HttpStatusCode.Unauthorized => "Din session er udløbet. Log ind igen og kontrollér kurven.",
         HttpStatusCode.Forbidden => "Du har ikke adgang til at gennemføre denne ordre.",
         HttpStatusCode.BadRequest => "Ordren blev afvist. Udfyld alle kontakt- og leveringsoplysninger, og kontrollér varernes tilgængelighed og lagerantal i kurven.",
-        HttpStatusCode.Conflict => "Kurven eller lageret er ændret. Gå tilbage til kurven og kontrollér varerne, før du prøver igen.",
-        HttpStatusCode.ServiceUnavailable => "MobilePay er endnu ikke aktiveret. Kontakt Lisberg Threads, hvis du vil bestille.",
+        HttpStatusCode.Conflict => "Kurv, lager eller levering er ændret. Kontrollér varerne og fragtprisen, og vælg pakkeshop igen. Genindlæs checkout, før du prøver igen.",
+        HttpStatusCode.ServiceUnavailable => "Betaling eller levering er ikke tilgængelig lige nu. Prøv igen senere eller vælg en anden leveringsform.",
 
         _ => UnconfirmedCheckout
     };

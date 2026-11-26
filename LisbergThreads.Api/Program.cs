@@ -19,6 +19,13 @@ if (builder.Environment.IsDevelopment()) builder.Configuration.AddUserSecrets(ty
 builder.Configuration.AddEnvironmentVariables().AddCommandLine(args);
 
 builder.Services.AddSingleton<ProductUploadPath>();
+builder.Services.Configure<ShippingOptions>(builder.Configuration.GetSection("Shipping"));
+builder.Services.AddHttpClient("Shipmondo", client =>
+{
+    client.BaseAddress = new Uri("https://app.shipmondo.com/api/public/v3/");
+    client.Timeout = TimeSpan.FromSeconds(15);
+}).RemoveAllLoggers();
+builder.Services.AddSingleton<ShippingService>();
 builder.Services.Configure<MobilePayOptions>(builder.Configuration.GetSection("MobilePay"));
 var mobilePayOptions = builder.Configuration.GetSection("MobilePay").Get<MobilePayOptions>() ?? new();
 if (mobilePayOptions.Enabled && !mobilePayOptions.IsConfigured)
@@ -71,6 +78,13 @@ builder.Services.AddSingleton<ContactEmailSender>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("shipping", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
+            AutoReplenishment = true
+        }));
     options.AddPolicy("checkout", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
