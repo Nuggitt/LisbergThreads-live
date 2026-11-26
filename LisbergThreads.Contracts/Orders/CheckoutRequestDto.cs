@@ -18,4 +18,7 @@ public sealed record CheckoutRequestDto(
     List<CheckoutItemDto> Items,
     Guid PaymentId = default,
     Guid PaymentToken = default
-);
+)
+{
+    public ShippingSelectionDto? Shipping { get; init; }
+}

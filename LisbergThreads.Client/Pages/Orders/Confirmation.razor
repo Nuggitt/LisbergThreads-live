@@ -90,6 +90,12 @@ else if (Order is not null)
                         </div>
                     }
 
+                    @if (Order.Shipping is { } shipping)
+                    {
+                        <div class="d-flex justify-content-between mt-3"><span>Varer</span><span>@((Order.Total - shipping.Price).ToString("C"))</span></div>
+                        <div class="d-flex justify-content-between mt-2"><span>Fragt</span><span>@shipping.Price.ToString("C")</span></div>
+                    }
+
                     <div class="d-flex justify-content-between mt-3">
                         <strong>Total</strong>
                         <strong>@Order.Total.ToString("C")</strong>
@@ -103,11 +109,7 @@ else if (Order is not null)
                 <div class="card-body">
                     <h5 class="card-title">Levering</h5>
 
-                    <p class="mb-0">
-                        @Order.FirstName @Order.LastName<br />
-                        @Order.Address<br />
-                        @Order.PostalCode @Order.City
-                    </p>
+                    <OrderShippingSummary Order="@Order" />
                 </div>
             </div>
 

@@ -30,6 +30,73 @@ public partial class Checkout : ComponentBase
     protected CartDto? Cart { get; set; }
     protected CheckoutPaymentOptionsDto? PaymentOptions { get; set; }
 
+    protected List<ShippingMethodDto> ShippingMethods { get; set; } = [];
+    protected List<ShippingServicePointDto> ServicePoints { get; set; } = [];
+    protected string SelectedMethodId { get; set; } = string.Empty;
+    protected string SelectedServicePointId { get; set; } = string.Empty;
+    protected bool IsLoadingServicePoints { get; set; }
+    protected string? ShippingError { get; set; }
+    private int servicePointRequestVersion;
+    private string? searchedAddress;
+    private string CurrentShippingAddress => string.Join("\n", SelectedMethodId, Model.PostalCode.Trim(), Model.Address.Trim(), Model.City.Trim());
+    protected ShippingMethodDto? SelectedMethod => ShippingMethods.FirstOrDefault(method => method.Id == SelectedMethodId);
+    protected bool HasValidShipping => SelectedMethod is { IsAvailable: true, Price: not null } method
+        && (!method.RequiresServicePoint || searchedAddress == CurrentShippingAddress
+            && ServicePoints.Any(point => point.Id == SelectedServicePointId));
+    protected decimal? ShippingTotal => SelectedMethod is { IsAvailable: true } ? SelectedMethod.Price : null;
+    protected bool CanCheckout => !IsSaving && !CheckoutUncertain && PaymentOptions?.IsAvailable == true && HasValidShipping;
+
+    protected void ResetServicePoints()
+    {
+        servicePointRequestVersion++;
+        ServicePoints = [];
+        SelectedServicePointId = string.Empty;
+        searchedAddress = null;
+        ShippingError = null;
+        IsLoadingServicePoints = false;
+    }
+
+    protected async Task FindServicePointsAsync()
+    {
+        ResetServicePoints();
+        if (SelectedMethod is not { IsAvailable: true, RequiresServicePoint: true }) return;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(Model.PostalCode.Trim(), "^[0-9]{4}$")
+            || string.IsNullOrWhiteSpace(Model.Address) || string.IsNullOrWhiteSpace(Model.City))
+        {
+            ShippingError = "Udfyld adresse, dansk postnummer og by, før du søger efter pakkeshops.";
+            return;
+        }
+        var version = servicePointRequestVersion;
+        var address = CurrentShippingAddress;
+        IsLoadingServicePoints = true;
+        try
+        {
+            var url = $"api/shipping/service-points?methodId={Uri.EscapeDataString(SelectedMethodId)}"
+                + $"&postalCode={Uri.EscapeDataString(Model.PostalCode.Trim())}"
+                + $"&address={Uri.EscapeDataString(Model.Address.Trim())}&city={Uri.EscapeDataString(Model.City.Trim())}";
+            using var response = await Http.GetAsync(url);
+            if (version != servicePointRequestVersion || address != CurrentShippingAddress) return;
+            if (!response.IsSuccessStatusCode)
+            {
+                ShippingError = response.StatusCode == System.Net.HttpStatusCode.TooManyRequests
+                    ? "Der er søgt for mange gange. Vent et minut og prøv igen."
+                    : "Pakkeshops kunne ikke hentes. Kontrollér adressen og prøv igen, eller vælg hjemmelevering.";
+                return;
+            }
+            var points = await response.Content.ReadFromJsonAsync<List<ShippingServicePointDto>>()
+                ?? throw new System.Text.Json.JsonException();
+            if (version != servicePointRequestVersion || address != CurrentShippingAddress) return;
+            ServicePoints = points;
+            searchedAddress = address;
+            if (points.Count == 0) ShippingError = "Der blev ikke fundet en pakkeshop. Kontrollér adressen eller vælg en anden leveringsform.";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
+        {
+            if (version == servicePointRequestVersion) ShippingError = "Pakkeshops kunne ikke hentes. Kontrollér forbindelsen og prøv igen.";
+        }
+        finally { if (version == servicePointRequestVersion) IsLoadingServicePoints = false; }
+    }
+
     protected CheckoutFormModel Model { get; set; } = new();
 
     protected bool IsSaving { get; set; }
@@ -47,6 +114,8 @@ public partial class Checkout : ComponentBase
             PaymentOptions = await Http.GetFromJsonAsync<CheckoutPaymentOptionsDto>("api/cart/checkout-options")
                 ?? throw new System.Text.Json.JsonException();
             Model.PaymentMethod = PaymentOptions.IsTestMode ? "Test" : "MobilePay";
+            ShippingMethods = await Http.GetFromJsonAsync<List<ShippingMethodDto>>("api/shipping/methods")
+                ?? throw new System.Text.Json.JsonException();
             var pending = await MobilePayCheckout.GetAsync();
             if (pending is not null)
             {
@@ -97,7 +166,7 @@ public partial class Checkout : ComponentBase
     {
         if (Cart is null ||
             Cart.Items.Count == 0 ||
-            IsSaving || CheckoutUncertain || PaymentOptions?.IsAvailable != true)
+            !CanCheckout)
         {
             return;
         }
@@ -124,7 +193,11 @@ public partial class Checkout : ComponentBase
                 Model.PaymentMethod,
                 items,
                 Guid.NewGuid(),
-                Guid.NewGuid());
+                Guid.NewGuid())
+            {
+                Shipping = new ShippingSelectionDto(SelectedMethodId, ShippingTotal!.Value,
+                    SelectedMethod!.RequiresServicePoint ? SelectedServicePointId : null)
+            };
 
             await MobilePayCheckout.SaveAsync(new PendingMobilePayCheckout(request, !await IsLoggedInAsync()));
 
@@ -140,6 +213,18 @@ public partial class Checkout : ComponentBase
                 {
                     await MobilePayCheckout.ClearAsync(request.PaymentId);
                     ErrorMessage = OrderFeedback.CheckoutError(response);
+                    // Refresh changed prices and force a fresh parcelshop choice after a controlled rejection.
+                    ResetServicePoints();
+                    try
+                    {
+                        ShippingMethods = await Http.GetFromJsonAsync<List<ShippingMethodDto>>("api/shipping/methods") ?? [];
+                        PaymentOptions = await Http.GetFromJsonAsync<CheckoutPaymentOptionsDto>("api/cart/checkout-options");
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
+                    {
+                        ShippingMethods = [];
+                        ErrorMessage += " Leveringsmulighederne kunne ikke genindlæses. Genindlæs siden.";
+                    }
                     return;
                 }
                 Navigation.NavigateTo($"/payment/{request.PaymentId}?token={request.PaymentToken}");
@@ -227,6 +312,7 @@ public partial class Checkout : ComponentBase
         public string Address { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Postnummer er påkrævet.")]
+        [RegularExpression(@"^[0-9]{4}$", ErrorMessage = "Indtast et dansk postnummer med fire cifre.")]
         public string PostalCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "By er påkrævet.")]

@@ -1,4 +1,4 @@
-﻿@page "/orders/{OrderId:guid}"
+@page "/orders/{OrderId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 
@@ -72,6 +72,12 @@ else
                         </div>
                     }
 
+                    @if (Order.Shipping is { } shipping)
+                    {
+                        <div class="d-flex justify-content-between mt-3"><span>Varer</span><span>@((Order.Total - shipping.Price).ToString("C"))</span></div>
+                        <div class="d-flex justify-content-between mt-2"><span>Fragt</span><span>@shipping.Price.ToString("C")</span></div>
+                    }
+
                     <div class="order-total">
                         <strong>Total</strong>
 
@@ -114,17 +120,7 @@ else
                         Levering
                     </h2>
 
-                    <p class="mb-1">
-                        @Order.FirstName @Order.LastName
-                    </p>
-
-                    <p class="mb-1">
-                        @Order.Address
-                    </p>
-
-                    <p class="mb-1">
-                        @Order.PostalCode @Order.City
-                    </p>
+                    <OrderShippingSummary Order="@Order" />
 
                     <hr />
 

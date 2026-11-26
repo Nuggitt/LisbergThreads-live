@@ -90,6 +90,18 @@ namespace LisbergThreads.Api.Data
                 e.Property(o => o.Total)
                     .HasColumnType("decimal(18,2)");
 
+                e.Property(o => o.ShippingPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+                e.Property(o => o.ShippingMethodId).HasMaxLength(50);
+                e.Property(o => o.ShippingMethodName).HasMaxLength(100);
+                e.Property(o => o.ShippingCarrier).HasMaxLength(50);
+                e.Property(o => o.ServicePointId).HasMaxLength(100);
+                e.Property(o => o.ServicePointName).HasMaxLength(254);
+                e.Property(o => o.ServicePointAddress).HasMaxLength(254);
+                e.Property(o => o.ServicePointAddress2).HasMaxLength(254);
+                e.Property(o => o.ServicePointPostalCode).HasMaxLength(10);
+                e.Property(o => o.ServicePointCity).HasMaxLength(254);
+                e.Property(o => o.TrackingNumber).HasMaxLength(100);
+
                 e.Property(o => o.Status)
                     .HasMaxLength(50);
 

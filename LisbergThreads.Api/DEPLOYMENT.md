@@ -85,6 +85,30 @@ Ordren oprettes med `Placed` og betalingsstatus `Reserved`. Ved `Confirmed -> Sh
 
 Serveren kontrollerer uafsluttede betalingsforsøg i baggrunden, også når kunden lukker appen uden at vende tilbage. IIS kan standse eller genstarte en app; afklar driftsindstillingerne med Simply, og hold appen aktiv med en ekstern kontrol af `/health`. Efter en genstart genoptages de gemte forsøg. Kontrollér erhvervsportalens reservationer løbende, og håndtér dem inden MobilePays frister. Der er ikke registreret webhooks eller sat ekstern overvågning op.
 
+## Fragt med Shipmondo
+
+Checkout understøtter dao, PostNord og GLS, hver med pakkeshop og hjemmelevering i Danmark. `Shipping:Enabled` er som udgangspunkt `false`. Ingen priser eller produktkoder er valgt på forhånd. Køb kan først startes, når mindst én leveringsform samt betaling er klar. Det gælder også testordrer.
+
+Opret Shipmondo-kontoen, når virksomhedens CVR er klar, og kontrollér adgang til de ønskede produkter og gældende priser i kontoen. Indsæt en begrænset **Delivery Checkout key** i den private `appsettings.Local.json` som `Shipping:DeliveryCheckoutKey`. Nøglen bliver på API-serveren. Se [Shipmondos autentifikation](https://shipmondo.dev/docs/shipping_module/authentication/) og [opslag af produkter og pakkeshops](https://shipmondo.dev/docs/shipping_module/listing_service_points/).
+
+For hver ønsket leveringsform udfyldes `Shipping:Methods:<id>:Price` med kundens samlede fragtpris i DKK og `ProductCode` med det korrekte produkt fra jeres konto. Id'erne er `dao-parcelshop`, `dao-home`, `postnord-parcelshop`, `postnord-home`, `gls-parcelshop` og `gls-home`. Brug Shipmondos `/shipping_modules/carriers` og `/shipping_modules/products` til at bekræfte koder og adgang; et pakkeshop-produkt skal have `service_point_product=true`, og hjemmelevering skal have `false`. Brug ikke koder eller priser fra en anden fragtaftale. Tom pris (`null`), manglende nøgle eller manglende produktkode gør leveringsformen utilgængelig. `0` betyder bevidst gratis fragt. Priser skal have højst to decimaler. Slå først `Shipping:Enabled` til, når opsætningen er kontrolleret, og genstart API'et efter ændringer.
+
+Fragten er en fast pris **pr. ordre**. Produktdata indeholder endnu ikke pakkevægt eller mål. Kontrollér den færdigpakkede ordre mod den valgte fragtaftale; forventningen om 0–3 kg og cirka en skotøjsæske er et planlægningsgrundlag. Store ordrer kan kræve en anden pakkestørrelse eller flere labels. Aftal priser og håndtering af disse ordrer før åbning.
+
+API'et kontrollerer fragten og den valgte pakkeshop hos Shipmondo før betaling. Det gemmer leveringsformen, fragtprisen og pakkeshoppens adresse på ordren. Varer plus fragt udgør beløbet i MobilePay; senere prisændringer ændrer ikke et allerede oprettet betalingsforsøg. Shipmondo-fejl afviser nye pakkeshop-køb uden at trække lager. Kundeoplysninger og Shipmondo-nøglen logges ikke af integrationens HTTP-klient. Pakkeshops caches højst fem minutter, men kontrolleres igen ved checkout; der kan derfor være to opslag pr. bestilling. Kontrollér kontoens aktuelle opslagkvote.
+
+Labels købes manuelt i Shipmondo. Brug transportør, leveringsprodukt, modtageroplysninger og pakkeshoppens id fra ordrevisningen/API'et. Gem trackingnummeret på ordren som Admin. Nummeret vises på ordrebekræftelsen og under Mine ordrer. Der oprettes eller købes ikke labels automatisk, og tracking giver ikke automatisk en mail eller statusskift. Hævning i MobilePay sker fortsat først ved `Confirmed -> Shipped`.
+
+Migrationen `AddOrderShippingDetails` skal anvendes på den rigtige database **før** denne appversion publiceres. Den tilføjer nullable leverings- og trackingkolonner samt `ShippingPrice` med standardværdien 0; eksisterende ordrebeløb, produkter og kunder berøres ikke. Brug et gennemgået migrationsscript og den private forbindelse. GitHub-workflowet anvender ikke migrationen automatisk. Ældre ordrer og allerede startede betalinger bevarer deres oprindelige beløb uden efterfølgende fragttillæg.
+
+Manuel verifikation i udviklings-/betalings-testmiljø, når konto og priser er klar:
+
+1. Med fragt deaktiveret eller manglende pris/nøgle: købsknappen skal være deaktiveret; et direkte checkout-kald må ikke omgå kravet. En utilgængelig leveringsform må ikke kunne vælges.
+2. Afprøv begge leveringsformer hos hver transportør. Pakkeshop kræver et reelt valg. Ændret adresse, postnummer, by eller transportør skal nulstille valget. Fejl fra Shipmondo skal give en forståelig besked og intet lagertræk.
+3. Gennemfør både et gæstekøb og et køb med login: varebeløb + fragt skal matche MobilePay, ordrebekræftelse og Admin-visning. Lageret må kun trækkes én gang. En ændret klientpris eller pakkeshop fra en anden søgning skal afvises af API'et. Ændres serverens fragtpris, skal checkout afvises, og den nye pris vises til fornyet godkendelse.
+4. Gentag test af sidste vare, gentagne produktlinjer, udsolgte/inaktive varer og genoptaget betaling fra listen nedenfor. Fragttilføjelsen må ikke ændre lagerbeskyttelsen.
+5. Gem og ret tracking som Admin; kontrollér det på kundens ordre og gæstens bekræftelse. En kunde skal få afvist forsøg på at ændre tracking. En ordre kræver fortsat ejerskab, Admin eller korrekt gæstetoken. Afprøv også en ældre ordre uden fragtdata.
+
 ## Publicering
 
 Kør fra repositoryets rod med Bash, fx i Linux eller Git Bash:

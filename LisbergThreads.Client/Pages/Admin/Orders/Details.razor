@@ -1,4 +1,4 @@
-﻿@page "/admin/orders/{OrderId:guid}"
+@page "/admin/orders/{OrderId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Admin")]
 
@@ -72,6 +72,12 @@ else
                             </strong>
 
                         </div>
+                    }
+
+                    @if (Order.Shipping is { } shipping)
+                    {
+                        <div class="d-flex justify-content-between mt-3"><span>Varer</span><span>@((Order.Total - shipping.Price).ToString("C"))</span></div>
+                        <div class="d-flex justify-content-between mt-2"><span>Fragt</span><span>@shipping.Price.ToString("C")</span></div>
                     }
 
                     <div class="order-total">
@@ -164,6 +170,24 @@ else
                         @Order.PaymentStatus
                     </div>
 
+                </div>
+            </div>
+
+            <div class="card overview-order-card mb-3">
+                <div class="card-body">
+                    <h2 class="card-title">Levering</h2>
+                    <OrderShippingSummary Order="@Order" />
+                    @if (Order.Shipping?.ServicePoint is { } point)
+                    {
+                        <p class="mt-2 mb-0"><strong>Pakkeshop-id:</strong> @point.Id</p>
+                    }
+                    <label class="form-label mt-3" for="order-tracking">Trackingnummer</label>
+                    <input id="order-tracking" class="form-control" maxlength="100" @bind="TrackingNumber" disabled="@IsUpdatingTracking" />
+                    <button type="button" class="btn btn-outline-success mt-2" @onclick="UpdateTrackingAsync" disabled="@IsUpdatingTracking">
+                        @(IsUpdatingTracking ? "Gemmer…" : "Gem trackingnummer")
+                    </button>
+                    <FeedbackNotice Message="@TrackingMessage" />
+                    <FeedbackNotice Message="@TrackingErrorMessage" IsError="true" />
                 </div>
             </div>
 

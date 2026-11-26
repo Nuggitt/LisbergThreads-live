@@ -71,22 +71,58 @@ else
                 <div class="mb-3">
                     <label class="form-label" for="checkout-address">Adresse</label>
                     <InputText id="checkout-address" autocomplete="street-address" class="form-control"
-                               @bind-Value="Model.Address" />
+                               @bind-Value="Model.Address" @bind-Value:after="ResetServicePoints" disabled="@IsSaving" />
                 </div>
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="checkout-postal-code">Postnummer</label>
                         <InputText id="checkout-postal-code" autocomplete="postal-code" class="form-control"
-                                   @bind-Value="Model.PostalCode" />
+                                   @bind-Value="Model.PostalCode" @bind-Value:after="ResetServicePoints" disabled="@IsSaving" />
                     </div>
 
                     <div class="col-md-8 mb-3">
                         <label class="form-label" for="checkout-city">By</label>
                         <InputText id="checkout-city" autocomplete="address-level2" class="form-control"
-                                   @bind-Value="Model.City" />
+                                   @bind-Value="Model.City" @bind-Value:after="ResetServicePoints" disabled="@IsSaving" />
                     </div>
                 </div>
+
+                <p class="form-text">Vi leverer i Danmark.</p>
+                <fieldset class="shipping-methods" disabled="@IsSaving">
+                    <legend>Vælg levering</legend>
+                    <InputRadioGroup @bind-Value="SelectedMethodId" @bind-Value:after="ResetServicePoints">
+                        @foreach (var method in ShippingMethods)
+                        {
+                            <label class="shipping-choice" for="shipping-@method.Id">
+                                <InputRadio id="@($"shipping-{method.Id}")" Value="@method.Id" disabled="@(!method.IsAvailable)" />
+                                <span>@method.Name</span>
+                                <strong>@(method.IsAvailable ? method.Price!.Value.ToString("C") : "Ikke tilgængelig")</strong>
+                            </label>
+                        }
+                    </InputRadioGroup>
+                    @if (!ShippingMethods.Any(method => method.IsAvailable))
+                    {
+                        <p class="form-text">Levering er endnu ikke klar. Du kan bestille, når levering og betaling er åbnet.</p>
+                    }
+                    @if (SelectedMethod is { RequiresServicePoint: true, IsAvailable: true })
+                    {
+                        <button type="button" class="btn btn-outline-success my-2" @onclick="FindServicePointsAsync"
+                                disabled="@IsLoadingServicePoints">@(IsLoadingServicePoints ? "Søger…" : "Find pakkeshops")</button>
+                        <FeedbackNotice Message="@ShippingError" IsError="true" />
+                        @if (ServicePoints.Count > 0)
+                        {
+                            <label class="form-label" for="checkout-service-point">Vælg pakkeshop</label>
+                            <InputSelect id="checkout-service-point" class="form-select" @bind-Value="SelectedServicePointId">
+                                <option value="">Vælg en pakkeshop</option>
+                                @foreach (var point in ServicePoints)
+                                {
+                                    <option value="@point.Id">@point.Name · @point.Address @point.Address2, @point.PostalCode @point.City</option>
+                                }
+                            </InputSelect>
+                        }
+                    }
+                </fieldset>
 
                 <h2 class="checkout-section-heading">Betaling</h2>
 
@@ -114,7 +150,7 @@ else
                 <div class="checkout-actions">
                     <button type="submit"
                             class="btn btn-success"
-                            disabled="@(IsSaving || CheckoutUncertain || PaymentOptions?.IsAvailable != true)">
+                            disabled="@(!CanCheckout)">
                         @(IsSaving ? "Behandler…" : PaymentOptions?.IsTestMode == true ? "Gennemfør testordre" : "Fortsæt til MobilePay")
                     </button>
 
@@ -149,9 +185,11 @@ else
                         </div>
                     }
 
+                    <div class="checkout-line pt-3"><span>Varer</span><span>@Cart.Total.ToString("C")</span></div>
+                    <div class="checkout-line pt-2"><span>Fragt</span><span>@(ShippingTotal?.ToString("C") ?? "Vælg levering")</span></div>
                     <div class="checkout-total">
                         <strong>Total</strong>
-                        <strong>@Cart.Total.ToString("C")</strong>
+                        <strong>@(ShippingTotal.HasValue ? (Cart.Total + ShippingTotal.Value).ToString("C") : "Vælg levering")</strong>
                     </div>
                 </div>
             </div>
