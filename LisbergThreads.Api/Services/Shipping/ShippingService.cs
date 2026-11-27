@@ -2,11 +2,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using LisbergThreads.Api.Services.Errors;
 using LisbergThreads.Contracts.Orders;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace LisbergThreads.Api.Services;
+namespace LisbergThreads.Api.Services.Shipping;
 
 public sealed class ShippingService(IHttpClientFactory clients, IOptions<ShippingOptions> options) : IDisposable
 {
@@ -43,7 +44,7 @@ public sealed class ShippingService(IHttpClientFactory clients, IOptions<Shippin
     {
         var method = RequireMethod(methodId);
         if (!method.RequiresServicePoint)
-            throw new CheckoutRejectedException(400, "Denne leveringsform bruger ikke en pakkeshop.");
+            throw new ServiceException(ServiceError.Invalid, "Denne leveringsform bruger ikke en pakkeshop.");
         ValidateAddress(postalCode, address, city);
         postalCode = postalCode.Trim(); address = address.Trim(); city = city.Trim();
         var productCode = options.Value.Methods[method.Id].ProductCode;
@@ -65,7 +66,7 @@ public sealed class ShippingService(IHttpClientFactory clients, IOptions<Shippin
         {
             using var response = await clients.CreateClient("Shipmondo").GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
-                throw new CheckoutRejectedException(503, "Pakkeshops kan ikke hentes lige nu. Prøv igen senere eller vælg hjemmelevering.");
+                throw new ServiceException(ServiceError.Unavailable, "Pakkeshops kan ikke hentes lige nu. Prøv igen senere eller vælg hjemmelevering.");
             var points = await response.Content.ReadFromJsonAsync<List<ShipmondoServicePoint>>(cancellationToken)
                 ?? throw new JsonException();
             IReadOnlyList<ShippingServicePointDto> result = points
@@ -85,7 +86,7 @@ public sealed class ShippingService(IHttpClientFactory clients, IOptions<Shippin
             || ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
         {
             // Do not propagate the upstream exception: it may contain the private query string.
-            throw new CheckoutRejectedException(503, "Pakkeshops kan ikke hentes lige nu. Prøv igen senere eller vælg hjemmelevering.");
+            throw new ServiceException(ServiceError.Unavailable, "Pakkeshops kan ikke hentes lige nu. Prøv igen senere eller vælg hjemmelevering.");
         }
     }
 
@@ -93,39 +94,39 @@ public sealed class ShippingService(IHttpClientFactory clients, IOptions<Shippin
         string address, string city, CancellationToken cancellationToken)
     {
         if (selection is null)
-            throw new CheckoutRejectedException(400, "Vælg levering, før du fortsætter til betaling.");
+            throw new ServiceException(ServiceError.Invalid, "Vælg levering, før du fortsætter til betaling.");
         var method = RequireMethod(selection.MethodId);
         ValidateAddress(postalCode, address, city);
         if (selection.ExpectedPrice != method.Price)
-            throw new CheckoutRejectedException(409, "Fragtprisen er ændret. Genindlæs checkout og kontrollér beløbet.");
+            throw new ServiceException(ServiceError.Conflict, "Fragtprisen er ændret. Genindlæs checkout og kontrollér beløbet.");
         ShippingServicePointDto? point = null;
         if (method.RequiresServicePoint)
         {
             if (!ValidText(selection.ServicePointId, 100))
-                throw new CheckoutRejectedException(400, "Vælg en pakkeshop.");
+                throw new ServiceException(ServiceError.Invalid, "Vælg en pakkeshop.");
             // Recheck with Shipmondo before starting the database transaction and payment.
             var points = await GetServicePointsAsync(method.Id, postalCode, address, city, cancellationToken, refresh: true);
             point = points.FirstOrDefault(point => point.Id == selection.ServicePointId)
-                ?? throw new CheckoutRejectedException(409, "Pakkeshoppen kan ikke længere vælges. Søg og vælg en pakkeshop igen.");
+                ?? throw new ServiceException(ServiceError.Conflict, "Pakkeshoppen kan ikke længere vælges. Søg og vælg en pakkeshop igen.");
         }
         else if (!string.IsNullOrWhiteSpace(selection.ServicePointId))
-            throw new CheckoutRejectedException(400, "Hjemmelevering kan ikke have en pakkeshop.");
+            throw new ServiceException(ServiceError.Invalid, "Hjemmelevering kan ikke have en pakkeshop.");
         return new OrderShippingDto(method.Id, method.Name, method.Carrier, method.Price!.Value, point);
     }
 
     private ShippingMethodDto RequireMethod(string? methodId)
     {
         var method = GetMethods().FirstOrDefault(method => method.Id == methodId)
-            ?? throw new CheckoutRejectedException(400, "Vælg en gyldig leveringsform.");
+            ?? throw new ServiceException(ServiceError.Invalid, "Vælg en gyldig leveringsform.");
         if (!method.IsAvailable)
-            throw new CheckoutRejectedException(503, "Denne leveringsform er ikke tilgængelig lige nu.");
+            throw new ServiceException(ServiceError.Unavailable, "Denne leveringsform er ikke tilgængelig lige nu.");
         return method;
     }
 
     private static void ValidateAddress(string? postalCode, string? address, string? city)
     {
         if (!Regex.IsMatch(postalCode?.Trim() ?? "", "^[0-9]{4}$") || !ValidText(address, 254) || !ValidText(city, 254))
-            throw new CheckoutRejectedException(400, "Udfyld adresse, dansk postnummer og by. Vi leverer kun i Danmark.");
+            throw new ServiceException(ServiceError.Invalid, "Udfyld adresse, dansk postnummer og by. Vi leverer kun i Danmark.");
     }
 
     private static bool ValidText(string? value, int maxLength) =>

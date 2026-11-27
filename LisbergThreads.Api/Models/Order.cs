@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using LisbergThreads.Api.Data;
+using LisbergThreads.Contracts.Orders;
 
 namespace LisbergThreads.Api.Models
 {
@@ -35,16 +36,36 @@ namespace LisbergThreads.Api.Models
         public string? TrackingNumber { get; set; }
 
         public string PaymentMethod { get; set; } = string.Empty;
-        public string PaymentStatus { get; set; } = "Pending";
+        public string PaymentStatus { get; set; } = PaymentStatuses.Pending;
 
         public DateTime CreatedAt { get; set; }
         public decimal Total { get; set; }
-        public string Status { get; set; } = "Pending";
+        public string Status { get; set; } = OrderStatuses.Pending;
         public bool IsActive { get; set; } = true;
 
         public byte[] RowVersion { get; set; } = [];
 
         public ICollection<OrderItem> OrderItems { get; set; }
             = new List<OrderItem>();
+
+        // Item lines plus shipping. The only place the order total is calculated.
+        public void RecalculateTotal() =>
+            Total = OrderItems.Sum(item => item.Quantity * item.UnitPrice) + ShippingPrice;
+
+        // The valid order flow: Placed -> Confirmed -> Shipped -> Completed.
+        public bool CanChangeStatusTo(string newStatus) => Status switch
+        {
+            OrderStatuses.Placed => newStatus == OrderStatuses.Confirmed,
+            OrderStatuses.Confirmed => newStatus == OrderStatuses.Shipped,
+            OrderStatuses.Shipped => newStatus == OrderStatuses.Completed,
+            _ => false
+        };
+
+        public void ChangeStatus(string newStatus)
+        {
+            if (!CanChangeStatusTo(newStatus))
+                throw new InvalidOperationException($"Order status cannot change from {Status} to {newStatus}.");
+            Status = newStatus;
+        }
     }
 }

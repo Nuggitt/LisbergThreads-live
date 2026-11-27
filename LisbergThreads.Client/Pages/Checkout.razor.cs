@@ -113,7 +113,7 @@ public partial class Checkout : ComponentBase
         {
             PaymentOptions = await Http.GetFromJsonAsync<CheckoutPaymentOptionsDto>("api/cart/checkout-options")
                 ?? throw new System.Text.Json.JsonException();
-            Model.PaymentMethod = PaymentOptions.IsTestMode ? "Test" : "MobilePay";
+            Model.PaymentMethod = PaymentOptions.IsTestMode ? PaymentMethods.Test : PaymentMethods.MobilePay;
             ShippingMethods = await Http.GetFromJsonAsync<List<ShippingMethodDto>>("api/shipping/methods")
                 ?? throw new System.Text.Json.JsonException();
             var pending = await MobilePayCheckout.GetAsync();
@@ -318,6 +318,6 @@ public partial class Checkout : ComponentBase
         [Required(ErrorMessage = "By er påkrævet.")]
         public string City { get; set; } = string.Empty;
 
-        public string PaymentMethod { get; set; } = "MobilePay";
+        public string PaymentMethod { get; set; } = PaymentMethods.MobilePay;
     }
 }

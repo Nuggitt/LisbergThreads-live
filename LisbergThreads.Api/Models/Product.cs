@@ -33,5 +33,13 @@ namespace LisbergThreads.Api.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
+        // Stock is deducted only by a completed checkout and can never become negative.
+        public void DeductStock(int quantity)
+        {
+            if (quantity <= 0 || quantity > StockQuantity)
+                throw new InvalidOperationException("Stock cannot become negative.");
+            StockQuantity -= quantity;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

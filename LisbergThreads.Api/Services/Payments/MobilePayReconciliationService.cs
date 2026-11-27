@@ -2,7 +2,7 @@ using LisbergThreads.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace LisbergThreads.Api.Services;
+namespace LisbergThreads.Api.Services.Payments;
 
 public sealed class MobilePayReconciliationService(IServiceScopeFactory scopes, IOptions<MobilePayOptions> options,
     ILogger<MobilePayReconciliationService> logger) : BackgroundService

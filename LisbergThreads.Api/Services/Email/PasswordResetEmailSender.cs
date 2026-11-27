@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Text;
 
-namespace LisbergThreads.Api.Services;
+namespace LisbergThreads.Api.Services.Email;
 
 public sealed class PasswordResetEmailSender
 {

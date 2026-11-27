@@ -1,5 +1,6 @@
 using LisbergThreads.Api.Data;
-using LisbergThreads.Api.Services;
+using LisbergThreads.Api.Services.Auth;
+using LisbergThreads.Api.Services.Email;
 using LisbergThreads.Contracts.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -7,10 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace LisbergThreads.Api.Controllers
 {
@@ -19,16 +16,16 @@ namespace LisbergThreads.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IConfiguration _configuration;
+        private readonly JwtTokenService _tokens;
         private readonly PasswordResetEmailSender _passwordResetEmailSender;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
-            IConfiguration configuration,
+            JwtTokenService tokens,
             PasswordResetEmailSender passwordResetEmailSender)
         {
             _userManager = userManager;
-            _configuration = configuration;
+            _tokens = tokens;
             _passwordResetEmailSender = passwordResetEmailSender;
         }
 
@@ -99,7 +96,7 @@ namespace LisbergThreads.Api.Controllers
                 return Unauthorized();
             }
 
-            return Ok(await CreateLoginResponseAsync(user));
+            return Ok(await _tokens.CreateLoginResponseAsync(user));
         }
 
         [Authorize]
@@ -165,7 +162,7 @@ namespace LisbergThreads.Api.Controllers
                 return AccountErrors(result);
             }
 
-            return Ok(await CreateLoginResponseAsync(user));
+            return Ok(await _tokens.CreateLoginResponseAsync(user));
         }
 
         [Authorize]
@@ -241,35 +238,6 @@ namespace LisbergThreads.Api.Controllers
         {
             return BadRequest(new AccountErrorResponse(
                 result.Errors.Select(error => error.Code).Distinct().ToArray()));
-        }
-
-        private async Task<LoginResponse> CreateLoginResponseAsync(ApplicationUser user)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
-                new Claim(ClaimTypes.Name, user.Email!),
-                new Claim("security_stamp", await _userManager.GetSecurityStampAsync(user))
-            };
-
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
-
-            var jwt = _configuration.GetSection("Jwt");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var token = new JwtSecurityToken(
-                issuer: jwt["Issuer"],
-                audience: jwt["Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: credentials);
-
-            return new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token));
         }
     }
 }
