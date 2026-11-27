@@ -1,16 +1,9 @@
 using LisbergThreads.Api.Data;
-using LisbergThreads.Api.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using LisbergThreads.Api.Extensions;
+using LisbergThreads.Api.Services.Uploads;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 // Private files are optional and never copied by the publishing process.
@@ -18,152 +11,11 @@ builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, relo
 if (builder.Environment.IsDevelopment()) builder.Configuration.AddUserSecrets(typeof(AppDbContext).Assembly, optional: true);
 builder.Configuration.AddEnvironmentVariables().AddCommandLine(args);
 
-builder.Services.AddSingleton<ProductUploadPath>();
-builder.Services.Configure<ShippingOptions>(builder.Configuration.GetSection("Shipping"));
-builder.Services.AddHttpClient("Shipmondo", client =>
-{
-    client.BaseAddress = new Uri("https://app.shipmondo.com/api/public/v3/");
-    client.Timeout = TimeSpan.FromSeconds(15);
-}).RemoveAllLoggers();
-builder.Services.AddSingleton<ShippingService>();
-builder.Services.Configure<MobilePayOptions>(builder.Configuration.GetSection("MobilePay"));
-var mobilePayOptions = builder.Configuration.GetSection("MobilePay").Get<MobilePayOptions>() ?? new();
-if (mobilePayOptions.Enabled && !mobilePayOptions.IsConfigured)
-    throw new InvalidOperationException("MobilePay er aktiveret, men serveropsætningen er ufuldstændig.");
-builder.Services.AddHttpClient("MobilePay", client => client.Timeout = TimeSpan.FromSeconds(30));
-builder.Services.AddSingleton(sp => new MobilePayClient(
-    sp.GetRequiredService<IHttpClientFactory>().CreateClient("MobilePay"),
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MobilePayOptions>>()));
-builder.Services.AddScoped<MobilePayPaymentService>();
-builder.Services.AddHostedService<MobilePayReconciliationService>();
-
-var dataProtection = builder.Services.AddDataProtection().SetApplicationName("LisbergThreads");
-if (!builder.Environment.IsDevelopment())
-{
-    var keysPath = Path.GetFullPath(builder.Configuration["DataProtection:KeysPath"] ?? "App_Data/keys",
-        builder.Environment.ContentRootPath);
-    Directory.CreateDirectory(keysPath);
-    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
-    if (OperatingSystem.IsWindows()) dataProtection.ProtectKeysWithDpapi();
-}
-
-// EF Core + SQL Server
-var connectionString =
-    builder.Configuration.GetConnectionString("RemoteConnection");
-
-if (string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException(
-        "Connection string 'RemoteConnection' mangler."
-    );
-}
-
-builder.Services.AddDbContext<AppDbContext>(opts =>
-    opts.UseSqlServer(connectionString));
-
-// Identity
-builder.Services.AddIdentityCore<ApplicationUser>(o =>
-{
-    o.User.RequireUniqueEmail = true;
-})
-.AddRoles<ApplicationRole>()
-.AddEntityFrameworkStores<AppDbContext>()
-.AddSignInManager<SignInManager<ApplicationUser>>()
-.AddDefaultTokenProviders();
-
-builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
-    options.TokenLifespan = TimeSpan.FromHours(1));
-builder.Services.AddSingleton<PasswordResetEmailSender>();
-builder.Services.AddSingleton<ContactEmailSender>();
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("shipping", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("checkout", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 6, Window = TimeSpan.FromMinutes(10), QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("payment-status", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("authentication", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-    options.AddPolicy("contact", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 3,
-            Window = TimeSpan.FromMinutes(10),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
-});
-
-// JWT
-var jwt = builder.Configuration.GetSection("Jwt");
-if (string.IsNullOrWhiteSpace(jwt["Key"]) || Encoding.UTF8.GetByteCount(jwt["Key"]!) < 32
-    || string.IsNullOrWhiteSpace(jwt["Issuer"]) || string.IsNullOrWhiteSpace(jwt["Audience"]))
-    throw new InvalidOperationException("JWT kræver issuer, audience og en privat tilfældig nøgle på mindst 32 bytes.");
-var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateIssuerSigningKey = true,
-            ValidateLifetime = true,
-
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
-            IssuerSigningKey = key
-        };
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = async context =>
-            {
-                var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                var stamp = context.Principal?.FindFirstValue("security_stamp");
-                if (!Guid.TryParse(userId, out var id) || string.IsNullOrEmpty(stamp))
-                {
-                    context.Fail("Session is no longer valid.");
-                    return;
-                }
-
-                var userManager = context.HttpContext.RequestServices
-                    .GetRequiredService<UserManager<ApplicationUser>>();
-                var user = await userManager.FindByIdAsync(id.ToString());
-                if (user is null || !user.IsActive
-                    || !string.Equals(stamp, await userManager.GetSecurityStampAsync(user), StringComparison.Ordinal))
-                {
-                    context.Fail("Session is no longer valid.");
-                }
-            }
-        };
-    });
-
-builder.Services.AddAuthorization();
-
+builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddIdentityAndJwt(builder.Configuration, builder.Environment);
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddRateLimitPolicies();
+builder.Services.AddApiExceptionHandling();
 
 var mobileTestingEnabled = builder.Environment.IsDevelopment()
     && builder.Configuration.GetValue<bool>("MobileTesting:Enabled");
@@ -171,16 +23,15 @@ var mobileClientOrigin = mobileTestingEnabled
     ? builder.Configuration["MobileTesting:ClientOrigin"]
     : null;
 
-//CORS
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("DevCors", policy =>
     {
         policy.WithOrigins(
-            "https://localhost:7022",   // ? API
-            "https://localhost:7185",   // ? Blazor server (tilpas når du kender Web-porten)
-            "http://localhost:5102",     // ? fallback til http
-            "https://localhost:7148" //WASM
+            "https://localhost:7022",   // API
+            "https://localhost:7185",   // Blazor server
+            "http://localhost:5102",    // HTTP fallback
+            "https://localhost:7148"    // WASM
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -193,37 +44,10 @@ builder.Services.AddCors(opt =>
     });
 });
 
-// Controllers
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Indsæt dit JWT token"
-    });
-
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
+builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
@@ -238,17 +62,18 @@ if (!mobileTestingEnabled)
 }
 if (app.Environment.IsDevelopment()) app.UseCors("DevCors");
 else app.UseHsts();
-app.UseExceptionHandler(handler => handler.Run(async context =>
-{
-    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-    await context.Response.WriteAsJsonAsync(new { message = "Der opstod en serverfejl. Prøv igen senere." });
-}));
+app.UseApiExceptionHandling();
 app.Use(async (context, next) =>
 {
-    context.Response.Headers["Referrer-Policy"] = "no-referrer";
-    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-    if (context.Request.Path.StartsWithSegments("/api"))
-        context.Response.Headers.CacheControl = "no-store";
+    // Set when the response starts, so error responses from the exception handler keep them too.
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        if (context.Request.Path.StartsWithSegments("/api"))
+            context.Response.Headers.CacheControl = "no-store";
+        return Task.CompletedTask;
+    });
     await next(context);
 });
 app.UseAuthentication();

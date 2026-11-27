@@ -24,8 +24,8 @@ public partial class Payment : ComponentBase, IDisposable
 
     protected string ResultMessage => Status?.State switch
     {
-        "StockRejected" => "En vare er ikke længere tilgængelig i det ønskede antal. Ordren er ikke oprettet. Kontrollér kurven før et nyt forsøg.",
-        "EXPIRED" => "Betalingstiden udløb. Der er ikke oprettet en ordre. Varerne er bevaret i kurven.",
+        PaymentStates.StockRejected => "En vare er ikke længere tilgængelig i det ønskede antal. Ordren er ikke oprettet. Kontrollér kurven før et nyt forsøg.",
+        PaymentStates.Expired => "Betalingstiden udløb. Der er ikke oprettet en ordre. Varerne er bevaret i kurven.",
         _ => "Betalingen er afbrudt eller annulleret. Der er ikke oprettet en ordre. Varerne er bevaret i kurven."
     };
 
@@ -67,7 +67,7 @@ public partial class Payment : ComponentBase, IDisposable
             }
             Status = await response.Content.ReadFromJsonAsync<MobilePayStatusDto>(cancellation.Token)
                 ?? throw new System.Text.Json.JsonException();
-            if (Status.State == "Completed" && Status.OrderId is { } orderId)
+            if (Status.State == PaymentStates.Completed && Status.OrderId is { } orderId)
             {
                 var cleanupFailed = false;
                 try

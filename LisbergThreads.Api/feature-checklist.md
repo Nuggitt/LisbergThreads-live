@@ -393,6 +393,9 @@ Spamkontrol består af et skjult felt samt højst tre afsendelsesforsøg pr. IP-
 - [x] SQL Server
 - [x] Entity Framework Core
 - [x] DTO’er via LisbergThreads.Contracts
+- [x] Tynde controllers: forretningsregler, transaktioner og låse ligger i én service pr. område under `Services/` (Products, Cart, Checkout, Orders, Payments, Shipping, Auth, Email, Uploads)
+- [x] Fælles regler ét sted: `ProductValidator`, `Order.RecalculateTotal`/`ChangeStatus`, `Product.DeductStock` og konstanter for status og betaling i Contracts
+- [x] Central fejlhåndtering: `ServiceException` oversættes til HTTP-statuskode i `Extensions/ExceptionHandlingExtensions.cs`
 
 ## 🧪 Testplan og manuel verifikation
 

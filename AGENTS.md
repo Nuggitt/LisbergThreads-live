@@ -42,6 +42,20 @@ Hold ændringer fokuseret på opgaven, og bevar eksisterende, uvedkommende ændr
 Hvis en opgave kræver ændringer i DTO'er eller databaseskema, forklar konsekvenserne
 for både API, klient og eventuelle migrationer.
 
+### Opdeling i API'et
+
+- Controllers håndterer kun HTTP: route, `[Authorize]`, bruger-id fra claims, DTO ind og ud og statuskode.
+- Forretningsregler, transaktioner og låse ligger i én service pr. område under
+  `LisbergThreads.Api/Services/` (fx `Cart`, `Checkout`, `Orders`, `Products`, `Payments`), ikke én pr. endpoint.
+  En controller uden forretningsregler må bruge `AppDbContext` direkte.
+- Hver regel findes ét sted: produktvalidering i `ProductValidator`, ordretotal og statusskift i `Order`,
+  lagertræk i `Product.DeductStock`, ordre og lager ved checkout i `CheckoutService`.
+- Afviste regler kastes som `ServiceException` med `ServiceError` og dansk tekst; den oversættes til statuskode
+  i `Extensions/ExceptionHandlingExtensions.cs`. Brug ikke try/catch med statuskoder i controllers.
+- Brug konstanterne `OrderStatuses`, `PaymentMethods`, `PaymentStatuses` og `PaymentStates` frem for strenge.
+- Registrér konkrete klasser i DI. Indfør ikke repositories, og kun interfaces ved et konkret behov,
+  fx en ekstra implementation. Ny opsætning fra `Program.cs` lægges i extension-metoder under `Extensions/`.
+
 ## Ordrer
 
 Det gyldige ordreflow er:

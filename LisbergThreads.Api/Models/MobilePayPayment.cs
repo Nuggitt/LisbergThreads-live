@@ -1,3 +1,5 @@
+using LisbergThreads.Contracts.Orders;
+
 namespace LisbergThreads.Api.Models;
 
 public sealed class MobilePayPayment
@@ -10,7 +12,7 @@ public sealed class MobilePayPayment
     public decimal Total { get; set; }
     public string SnapshotJson { get; set; } = string.Empty;
     public string? RedirectUrl { get; set; }
-    public string State { get; set; } = "Creating";
+    public string State { get; set; } = PaymentStates.Creating;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime NextCheckAt { get; set; } = DateTime.UtcNow;

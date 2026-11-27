@@ -1,4 +1,4 @@
-using LisbergThreads.Api.Services;
+using LisbergThreads.Api.Services.Shipping;
 using LisbergThreads.Contracts.Orders;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,9 +16,6 @@ public sealed class ShippingController(ShippingService shipping) : ControllerBas
     [EnableRateLimiting("shipping")]
     public async Task<ActionResult<IReadOnlyList<ShippingServicePointDto>>> GetServicePoints(
         [FromQuery] string methodId, [FromQuery] string postalCode, [FromQuery] string address,
-        [FromQuery] string city, CancellationToken cancellationToken)
-    {
-        try { return Ok(await shipping.GetServicePointsAsync(methodId, postalCode, address, city, cancellationToken)); }
-        catch (CheckoutRejectedException ex) { return StatusCode(ex.StatusCode, ex.Message); }
-    }
+        [FromQuery] string city, CancellationToken cancellationToken) =>
+        Ok(await shipping.GetServicePointsAsync(methodId, postalCode, address, city, cancellationToken));
 }
