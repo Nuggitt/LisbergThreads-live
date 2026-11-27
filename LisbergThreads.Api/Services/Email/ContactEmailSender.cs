@@ -3,7 +3,7 @@ using System.Net.Mail;
 using System.Text;
 using LisbergThreads.Contracts.Contact;
 
-namespace LisbergThreads.Api.Services;
+namespace LisbergThreads.Api.Services.Email;
 
 public sealed class ContactEmailSender
 {

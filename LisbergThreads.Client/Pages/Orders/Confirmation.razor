@@ -1,4 +1,5 @@
 @page "/orders/confirmation/{OrderId:guid}"
+@using LisbergThreads.Contracts.Orders
 
 <PageTitle>Ordrebekræftelse</PageTitle>
 
@@ -18,7 +19,7 @@ else if (!string.IsNullOrWhiteSpace(ErrorMessage))
 else if (Order is not null)
 {
     <FeedbackNotice Message="@($"Tak for din ordre, {Order.FirstName}! Din ordre er modtaget.")" />
-    @if (Order.PaymentStatus == "Test")
+    @if (Order.PaymentStatus == PaymentStatuses.Test)
     {
         <FeedbackNotice Message="Dette er en testordre. Der er ikke reserveret eller hævet penge." />
     }

@@ -1,5 +1,5 @@
 using System.Net.Mail;
-using LisbergThreads.Api.Services;
+using LisbergThreads.Api.Services.Email;
 using LisbergThreads.Contracts.Contact;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -1,4 +1,4 @@
-namespace LisbergThreads.Api.Services;
+namespace LisbergThreads.Api.Services.Shipping;
 
 public sealed class ShippingOptions
 {
